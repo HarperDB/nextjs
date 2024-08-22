@@ -18,31 +18,29 @@ npm install @harperdb/nextjs
 ```yaml
 @harperdb/nextjs:
   package: '@harperdb/nextjs'
-  dev: true
+  files: '/*'
 ```
 
 ## Options
 
 ### `dev: boolean`
 
-> 💡 Dev mode is hard. If every worker has a Next.js server running, every worker will be rebuilding the next app on changes (and this might not even work because Next.js uses workers itself for building). Need to figure out how to do the building on the main thread, but then still serve the output from all the workers (and include the HMR?).
+Enables Next.js dev mode.
+
+> Note: This feature is currently not-supported and is work-in-progress.
 
 ### `prebuilt: boolean`
 
 When enabled, the extension will look for a `.next` directory in the root of the component and use that as Next.js application root.
 
-> 💡 This could maybe also be specified as a string that is the path to the prebuilt application.
-
 ### `installCommand: string`
 
 Specify an install command. Defaults to `npm install`.
 
-> Note: the extension will skip installing dependencies if it detects a `node_modules` folder in the component.
+> Note: the extension will skip installing dependencies if it detects a `node_modules` folder in the application component.
 
 ### `buildCommand: string`
 
-Specify a build command. Defaults to `npm run build`.
+Specify a custom build command. Defaults to `npm run build`.
 
-### `debug: boolean`
-
-Enable debug output for the extension.
+> Note: the extension will skip building if the `prebuilt` option is set to `true`

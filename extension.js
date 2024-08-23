@@ -133,15 +133,14 @@ function assertNextJSApp (componentPath) {
  */
 async function executeCommand(commandInput, componentPath) {
 	const [ command, ...args ] = shellQuote.parse(commandInput);
-
 	const cp = child_process.spawn(command, args, {
 		cwd: componentPath,
 		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore'
 	});
 
-	const exitCode = await events.once(cp, 'exit');
+	const [exitCode] = await events.once(cp, 'exit');
 
-	logger.debug(`${commandInput} exited with ${exitCode}`);
+	logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
 }
 
 /**
@@ -155,7 +154,7 @@ async function executeCommand(commandInput, componentPath) {
  * @param {ExtensionOptions} options 
  * @returns 
  */
-export async function startOnMainThread (options) {
+export function startOnMainThread (options = {}) {
 	const config = resolveConfig(options);
 
 	logger.debug('Next.js Extension Configuration:', JSON.stringify(config, undefined, 2));
@@ -190,7 +189,7 @@ export async function startOnMainThread (options) {
  * @param {ExtensionOptions} options 
  * @returns 
  */
-export function start (options) {
+export function start (options = {}) {
 	const config = resolveConfig(options);
 
 	return {

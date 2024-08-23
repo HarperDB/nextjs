@@ -1,0 +1,12 @@
+{
+	"name": "nextjs-app",
+	"scripts": {
+		"build": "next build"
+	},
+	"dependencies": {
+		"harperdb": "^4.3.20",
+		"next": "^14.2.6",
+		"react": "^18",
+    	"react-dom": "^18"
+	}
+}

@@ -4,6 +4,9 @@
     "version": "0.0.1",
     "type": "module",
     "files": ["config.yaml", "extension.js", "package.json", "README.md"],
+    "scripts": {
+        "test": "node --test"
+    },
     "dependencies": {
         "next": "^14.2.6",
         "semver": "^7.6.3",

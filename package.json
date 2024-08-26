@@ -17,7 +17,10 @@
         "name": "HarperDB",
         "email": "support@harperdb.io"
     },
-    "repository": "github:HarperDB-Add-Ons/nextjs",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/HarperDB-Add-Ons/nextjs.git"
+    },
     "license": "MIT",
     "type": "module",
     "files": [

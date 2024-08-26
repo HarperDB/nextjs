@@ -3,7 +3,12 @@
     "description": "A HarperDB Component for running Next.js apps.",
     "version": "0.0.1",
     "type": "module",
-    "files": ["config.yaml", "extension.js", "package.json", "README.md"],
+    "files": [
+        "config.yaml",
+        "extension.js",
+        "package.json",
+        "README.md"
+    ],
     "dependencies": {
         "next": "^14.2.6",
         "semver": "^7.6.3",

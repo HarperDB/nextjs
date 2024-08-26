@@ -15,6 +15,7 @@ import shellQuote from 'shell-quote';
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the 
  * @property {string=} installCommand - A custom install command. Defaults to `npm run install`
  * @property {string=} buildCommand - A custom build command. Default to `npm run build`
+ * @property {number=} port - A port for the Next.js server. Defaults to `3000`
  */
 
 let CONFIG;
@@ -37,12 +38,18 @@ function resolveConfig (options) {
 		assert.strictEqual(buildCommandType, 'string', `buildCommand must be type string. received: ${buildCommandType}`)
 	}
 
+	if (options.port) {
+		const portType = typeof options.port;
+		assert.strictEqual(portType, 'number', `port must be type number. received: ${portType}`);
+	}
+
 	// Memoize config resolution
 	return CONFIG = {
 		dev: Boolean(options.dev), // defaults to `false`
 		prebuilt: Boolean(options.prebuilt), // defaults to `false`
 		installCommand: options.installCommand ?? 'npm install',
-		buildCommand: options.buildCommand ?? 'npm run build'
+		buildCommand: options.buildCommand ?? 'npm run build',
+		port: options.port ?? 3000
 	};
 }
 
@@ -195,21 +202,32 @@ export function start (options = {}) {
 	return {
 		async handleDirectory(_, componentPath) {
 
-			logger.info(`Next.js Extension is creating a Next.js Server for ${componentPath}`);
+			logger.info(`Next.js Extension is creating Next.js Request Handlers for ${componentPath}`);
 
 			assertNextJSApp(componentPath);
 
 			const app = next({ dir: componentPath, dev: config.dev });
+
 			await app.prepare();
-			// TODO: Dig Deep on this part
-			const handle = app.getRequestHandler();
-			options.server.http((request) => {
-				return handle(
+
+			const requestHandler = app.getRequestHandler();
+
+			const servers = options.server.http((request) => {
+				return requestHandler(
 					request._nodeRequest,
 					request._nodeResponse,
 					url.parse(request._nodeRequest.url, true)
-				)
-			})
+				);
+			}, { port: config.port });
+
+			if (config.dev) {
+				const upgradeHandler = app.getUpgradeHandler();
+				servers[0].on('upgrade', (req, socket, head) => {
+					return upgradeHandler(req, socket, head);
+				});
+			}
+
+			logger.info(`Next.js App available on localhost:${config.port}`)
 
 			return true;
 		}

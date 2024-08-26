@@ -11,14 +11,29 @@ import shellQuote from 'shell-quote';
 
 /**
  * @typedef {Object} ExtensionOptions - The configuration options for the extension. These are all configurable via `config.yaml`.
- * @property {boolean=} dev - Enable dev mode
- * @property {boolean=} prebuilt - Instruct the extension to skip executing the 
- * @property {string=} installCommand - A custom install command. Defaults to `npm run install`
- * @property {string=} buildCommand - A custom build command. Default to `npm run build`
- * @property {number=} port - A port for the Next.js server. Defaults to `3000`
+ * @property {string=} buildCommand - A custom build command. Default to `npm run build`.
+ * @property {boolean=} dev - Enable dev mode. Defaults to `false`.
+ * @property {string=} installCommand - A custom install command. Defaults to `npm run install`.
+ * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
+ * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
  */
 
+// Memoized Configuration
 let CONFIG;
+
+/**
+ * Assert that a given option is a specific type
+ * 
+ * @param {string} name The name of the option
+ * @param {any=} option The option value
+ * @param {string} expectedType The expected type (i.e. `'string'`, `'number'`, `'boolean'`, etc.)
+ */
+function assertType(name, option, expectedType) {
+	if (option) {
+		const found = typeof option;
+		assert.strictEqual(found, expectedType, `${name} must be type ${expectedType}. Received: ${found}`)
+	}
+}
 
 /**
  * Resolves the incoming extension options into a config for use throughout the extension
@@ -28,28 +43,19 @@ let CONFIG;
 function resolveConfig (options) {
 	if (CONFIG) return CONFIG; // return memoized config
 
-	if (options.installCommand) {
-		const installCommandType = typeof options.installCommand
-		assert.strictEqual(installCommandType, 'string', `installCommand must be type string. received: ${installCommandType}`)
-	}
-
-	if (options.buildCommand) {
-		const buildCommandType = typeof options.buildCommand
-		assert.strictEqual(buildCommandType, 'string', `buildCommand must be type string. received: ${buildCommandType}`)
-	}
-
-	if (options.port) {
-		const portType = typeof options.port;
-		assert.strictEqual(portType, 'number', `port must be type number. received: ${portType}`);
-	}
+	assertType('buildCommand', options.buildCommand, 'string');
+	assertType('dev', options.dev, 'boolean');
+	assertType('installCommand', options.installCommand, 'string');
+	assertType('port', options.port, 'number');
+	assertType('prebuilt', options.prebuilt, 'boolean');
 
 	// Memoize config resolution
 	return CONFIG = {
-		dev: Boolean(options.dev), // defaults to `false`
-		prebuilt: Boolean(options.prebuilt), // defaults to `false`
-		installCommand: options.installCommand ?? 'npm install',
 		buildCommand: options.buildCommand ?? 'npm run build',
-		port: options.port ?? 3000
+		dev: options.dev ?? false,
+		installCommand: options.installCommand ?? 'npm install',
+		port: options.port ?? 3000,
+		prebuilt: options.prebuilt ?? false,
 	};
 }
 
@@ -88,8 +94,6 @@ function assertNextJSApp (componentPath) {
 		//    - Also not required. Users can use `npx next ...`
 		// 3. Check for `.next` folder
 		//    - This could be a reasonable fallback if we want to support pre-built Next.js apps
-
-
 
 		// A combination of options 1 and 2 should be sufficient for our purposes.
 		// Edge case: app does not have a config and are using `npx` (or something similar) to execute Next.js

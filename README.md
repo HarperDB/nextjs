@@ -4,7 +4,7 @@ A HarperDB Component for running Next.js apps.
 
 This module makes the HarperDB global resources available for use within a Next.js application.
 
-Currently, it is limited to server-side only.
+Currently, it is limited to server-side pages only.
 
 It is recommended to add `export const dynamic = 'force-dynamic'` to any pages that use the HarperDB globals.
 
@@ -23,15 +23,19 @@ npm install @harperdb/nextjs
 
 ## Options
 
+> All configuration options are optional
+
 ### `dev: boolean`
 
-Enables Next.js dev mode.
+Enables Next.js dev mode. Defaults to `false`.
 
-> Note: This feature is currently not-supported and is work-in-progress.
+### `port: number`
+
+Specify a port for the Next.js server. Defaults to `3000`.
 
 ### `prebuilt: boolean`
 
-When enabled, the extension will look for a `.next` directory in the root of the component and use that as Next.js application root.
+When enabled, the extension will look for a `.next` directory in the root of the component and skip executing the `buildCommand`. Defaults to `false`.
 
 ### `installCommand: string`
 

@@ -1,13 +1,28 @@
 {
     "name": "@harperdb/nextjs",
     "description": "A HarperDB Component for running Next.js apps.",
+    "keywords": [
+        "harperdb",
+        "next.js",
+        "distributed",
+        "applications"
+    ],
     "version": "0.0.1",
+    "homepage": "https://github.com/HarperDB-Add-Ons/nextjs",
+    "bugs": {
+        "url": "https://github.com/HarperDB-Add-Ons/nextjs/issues",
+        "email": "support@harperdb.io"
+    },
+    "author": {
+        "name": "HarperDB",
+        "email": "support@harperdb.io"
+    },
+    "repository": "github:HarperDB-Add-Ons/nextjs",
+    "license": "MIT",
     "type": "module",
     "files": [
         "config.yaml",
-        "extension.js",
-        "package.json",
-        "README.md"
+        "extension.js"
     ],
     "dependencies": {
         "next": "^14.2.6",

@@ -23,9 +23,13 @@
     },
     "license": "MIT",
     "type": "module",
+    "bin": {
+        "harperdb-nextjs": "./cli.js"
+    },
     "files": [
         "config.yaml",
-        "extension.js"
+        "extension.js",
+        "cli.js"
     ],
     "dependencies": {
         "next": "^14.2.6",

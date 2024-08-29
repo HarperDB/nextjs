@@ -12,6 +12,7 @@ import shellQuote from 'shell-quote';
 /**
  * @typedef {Object} ExtensionOptions - The configuration options for the extension. These are all configurable via `config.yaml`.
  * @property {string=} buildCommand - A custom build command. Default to `npm run build`.
+ * @property {string=} buildOnly - Build the Next.js app and exit. Defaults to `false`.
  * @property {boolean=} dev - Enable dev mode. Defaults to `false`.
  * @property {string=} installCommand - A custom install command. Defaults to `npm run install`.
  * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
@@ -43,6 +44,23 @@ function assertType(name, option, expectedType) {
 function resolveConfig (options) {
 	if (CONFIG) return CONFIG; // return memoized config
 
+	// Environment Variables take precedence
+	switch (process.env.HARPERDB_NEXTJS_MODE) {
+		case 'dev':
+			options.dev = true;
+			break;
+		case 'build':
+			options.buildOnly = true;
+			options.dev = false;
+			options.prebuilt = false;
+			break;
+		case 'prod':
+			options.dev = false;
+			break;
+		default:
+			break;
+	}
+
 	assertType('buildCommand', options.buildCommand, 'string');
 	assertType('dev', options.dev, 'boolean');
 	assertType('installCommand', options.installCommand, 'string');
@@ -51,7 +69,8 @@ function resolveConfig (options) {
 
 	// Memoize config resolution
 	return CONFIG = {
-		buildCommand: options.buildCommand ?? 'npm run build',
+		buildCommand: options.buildCommand ?? 'next build',
+		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
 		port: options.port ?? 3000,
@@ -180,8 +199,10 @@ export function startOnMainThread (options = {}) {
 				await executeCommand(config.installCommand, componentPath)
 			}
 
-			if (!config.prebuilt) {
+			if (!config.prebuilt && !config.dev) {
 				await executeCommand(config.buildCommand, componentPath)
+
+				if (config.buildOnly) process.exit(0);
 			}
 
 			return true;

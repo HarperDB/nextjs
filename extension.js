@@ -11,10 +11,10 @@ import shellQuote from 'shell-quote';
 
 /**
  * @typedef {Object} ExtensionOptions - The configuration options for the extension. These are all configurable via `config.yaml`.
- * @property {string=} buildCommand - A custom build command. Default to `npm run build`.
+ * @property {string=} buildCommand - A custom build command. Default to `next build`.
  * @property {string=} buildOnly - Build the Next.js app and exit. Defaults to `false`.
  * @property {boolean=} dev - Enable dev mode. Defaults to `false`.
- * @property {string=} installCommand - A custom install command. Defaults to `npm run install`.
+ * @property {string=} installCommand - A custom install command. Defaults to `npm install`.
  * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
  */

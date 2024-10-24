@@ -5,14 +5,15 @@ import events from 'node:events';
 const cwd = process.cwd();
 const command = process.argv.length === 2 ? 'help' : process.argv[2];
 
-async function executeHarperDB (mode) {
+async function executeHarperDB(mode) {
 	const p = child_process.spawn('harperdb', ['run', './'], {
 		cwd,
 		stdio: 'inherit',
 		env: {
 			...process.env,
-			HARPERDB_NEXTJS_MODE: mode
-		}
+			HARPERDB_NEXTJS_MODE: mode,
+			THREADS_DEBUG: mode === 'dev' ? 'true' : 'false',
+		},
 	});
 	const [exitCode] = await events.once(p, 'exit');
 	console.log('HarperDB exited with code:', exitCode);
@@ -26,9 +27,9 @@ Available commands:
   dev      - Start HarperDB and run Next.js in development mode
   help     - Display this help message
   start    - Start HarperDB and run Next.js in production mode
-`
+`;
 
-switch(command) {
+switch (command) {
 	case 'build':
 		await executeHarperDB('build');
 		break;
@@ -41,6 +42,6 @@ switch(command) {
 	default:
 		console.log('Unknown command:', command);
 	case 'help':
-		console.log('Usage: harperdb-nextjs build|dev|start|help');
+		console.log(HELP);
 		break;
 }

@@ -1,39 +1,46 @@
 {
-    "name": "@harperdb/nextjs",
-    "description": "A HarperDB Component for running Next.js apps.",
-    "keywords": [
-        "harperdb",
-        "next.js",
-        "distributed",
-        "applications"
-    ],
-    "version": "0.0.2",
-    "homepage": "https://github.com/HarperDB-Add-Ons/nextjs",
-    "bugs": {
-        "url": "https://github.com/HarperDB-Add-Ons/nextjs/issues",
-        "email": "support@harperdb.io"
-    },
-    "author": {
-        "name": "HarperDB",
-        "email": "support@harperdb.io"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/HarperDB-Add-Ons/nextjs.git"
-    },
-    "license": "MIT",
-    "type": "module",
-    "bin": {
-        "harperdb-nextjs": "cli.js"
-    },
-    "files": [
-        "config.yaml",
-        "extension.js",
-        "cli.js"
-    ],
-    "dependencies": {
-        "next": "^14.2.6",
-        "semver": "^7.6.3",
-        "shell-quote": "^1.8.1"
-    }
+	"name": "@harperdb/nextjs",
+	"version": "0.0.2",
+	"type": "module",
+	"description": "A HarperDB Component for running Next.js apps.",
+	"keywords": [
+		"harperdb",
+		"next.js",
+		"distributed",
+		"applications"
+	],
+	"homepage": "https://github.com/HarperDB-Add-Ons/nextjs",
+	"bugs": {
+		"url": "https://github.com/HarperDB-Add-Ons/nextjs/issues",
+		"email": "support@harperdb.io"
+	},
+	"author": {
+		"name": "HarperDB",
+		"email": "support@harperdb.io"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/HarperDB-Add-Ons/nextjs.git"
+	},
+	"license": "MIT",
+	"bin": {
+		"harperdb-nextjs": "cli.js"
+	},
+	"files": [
+		"config.yaml",
+		"extension.js",
+		"cli.js"
+	],
+	"scripts": {
+		"format": "prettier --write ."
+	},
+	"dependencies": {
+		"semver": "^7.6.3",
+		"shell-quote": "^1.8.1"
+	},
+	"devDependencies": {
+		"@harperdb/code-guidelines": "^0.0.2",
+		"prettier": "^3.3.3"
+	},
+	"prettier": "@harperdb/code-guidelines/prettier"
 }

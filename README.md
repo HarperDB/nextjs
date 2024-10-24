@@ -7,20 +7,27 @@ Most Next.js features are supported as we rely on the Next.js Server provided by
 ## Usage
 
 1. Install:
+
 ```sh
 npm install @harperdb/nextjs
 ```
+
 2. Add to `config.yaml`:
+
 ```yaml
 @harperdb/nextjs:
   package: '@harperdb/nextjs'
   files: '/*'
 ```
+
 3. Run your app with HarperDB:
+
 ```sh
 harperdb run nextjs-app
 ```
+
 Alternatively, you can use the included `harperdb-nextjs` CLI:
+
 ```sh
 harperdb-nextjs build | dev | start
 ```

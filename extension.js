@@ -5,7 +5,7 @@ import child_process from 'node:child_process';
 import events from 'node:events';
 import assert from 'node:assert';
 
-import next from 'next';
+// import next from 'next';
 import semver from 'semver';
 import shellQuote from 'shell-quote';
 
@@ -24,7 +24,7 @@ let CONFIG;
 
 /**
  * Assert that a given option is a specific type
- * 
+ *
  * @param {string} name The name of the option
  * @param {any=} option The option value
  * @param {string} expectedType The expected type (i.e. `'string'`, `'number'`, `'boolean'`, etc.)
@@ -32,7 +32,7 @@ let CONFIG;
 function assertType(name, option, expectedType) {
 	if (option) {
 		const found = typeof option;
-		assert.strictEqual(found, expectedType, `${name} must be type ${expectedType}. Received: ${found}`)
+		assert.strictEqual(found, expectedType, `${name} must be type ${expectedType}. Received: ${found}`);
 	}
 }
 
@@ -41,7 +41,7 @@ function assertType(name, option, expectedType) {
  * @param {ExtensionOptions} options - The options object to be resolved into a configuration
  * @returns {Required<ExtensionOptions>}
  */
-function resolveConfig (options) {
+function resolveConfig(options) {
 	if (CONFIG) return CONFIG; // return memoized config
 
 	// Environment Variables take precedence
@@ -68,14 +68,14 @@ function resolveConfig (options) {
 	assertType('prebuilt', options.prebuilt, 'boolean');
 
 	// Memoize config resolution
-	return CONFIG = {
+	return (CONFIG = {
 		buildCommand: options.buildCommand ?? 'next build',
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
 		port: options.port ?? 3000,
 		prebuilt: options.prebuilt ?? false,
-	};
+	});
 }
 
 class NextJSAppVerificationError extends Error {}
@@ -87,21 +87,23 @@ const nextJSAppCache = {};
  * verification methods. It does not return nor throw anything. It will either
  * silently succeed, or log an error to `logger.fatal` and exit the process
  * with exit code 1.
- * 
+ *
  * Additionally, it memoizes previous verifications.
- * 
+ *
  * @param {string} componentPath
  * @returns void
  */
-function assertNextJSApp (componentPath) {
+function assertNextJSApp(componentPath) {
 	try {
-		if (nextJSAppCache[componentPath]) { return; }
+		if (nextJSAppCache[componentPath]) {
+			return;
+		}
 
-		if(!fs.existsSync(componentPath)) {
+		if (!fs.existsSync(componentPath)) {
 			throw new NextJSAppVerificationError(`The folder ${componentPath} does not exist`);
 		}
 
-		if(!fs.statSync(componentPath).isDirectory) {
+		if (!fs.statSync(componentPath).isDirectory) {
 			throw new NextJSAppVerificationError(`The path ${componentPath} is not a folder`);
 		}
 
@@ -118,7 +120,9 @@ function assertNextJSApp (componentPath) {
 		// Edge case: app does not have a config and are using `npx` (or something similar) to execute Next.js
 
 		// Check for Next.js Config
-		const configExists = fs.existsSync(path.join(componentPath, 'next.config.js')) || fs.existsSync(path.join(componentPath, 'next.config.ts'));
+		const configExists =
+			fs.existsSync(path.join(componentPath, 'next.config.js')) ||
+			fs.existsSync(path.join(componentPath, 'next.config.ts'));
 
 		// Check for dependency
 		let dependencyExists = false;
@@ -126,7 +130,7 @@ function assertNextJSApp (componentPath) {
 		if (fs.existsSync(packageJSONPath)) {
 			let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
 			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
-				let nextJSVersion = packageJSON[dependencyList]?.['next']
+				let nextJSVersion = packageJSON[dependencyList]?.['next'];
 				if (nextJSVersion) {
 					if (!semver.satisfies(semver.minVersion(nextJSVersion), '>=14.0.0')) {
 						throw new NextJSAppVerificationError(`Next.js version must be >=14.0.0. Found ${nextJSVersion}`);
@@ -138,7 +142,9 @@ function assertNextJSApp (componentPath) {
 		}
 
 		if (!configExists && !dependencyExists) {
-			throw new NextJSAppVerificationError(`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`);
+			throw new NextJSAppVerificationError(
+				`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`
+			);
 		}
 
 		nextJSAppCache[componentPath] = true;
@@ -155,17 +161,17 @@ function assertNextJSApp (componentPath) {
 
 /**
  * Execute a command as a promise and wait for it to exit before resolving.
- * 
+ *
  * Will automatically stream output to stdio when log level is set to debug.
  * @param {string} commandInput The command string to be parsed and executed
  * @param {string} componentPath The path to the application component
  * @param {boolean=} debug Print debugging information. Defaults to false
  */
 async function executeCommand(commandInput, componentPath) {
-	const [ command, ...args ] = shellQuote.parse(commandInput);
+	const [command, ...args] = shellQuote.parse(commandInput);
 	const cp = child_process.spawn(command, args, {
 		cwd: componentPath,
-		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore'
+		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
 	});
 
 	const [exitCode] = await events.once(cp, 'exit');
@@ -177,59 +183,60 @@ async function executeCommand(commandInput, componentPath) {
  * This method is executed once, on the main thread, and is responsible for
  * returning a Resource Extension that will subsequently be executed once,
  * on the main thread.
- * 
+ *
  * The Resource Extension is responsible for installing application component
  * dependencies and running the application build command.
- * 
- * @param {ExtensionOptions} options 
- * @returns 
+ *
+ * @param {ExtensionOptions} options
+ * @returns
  */
-export function startOnMainThread (options = {}) {
+export function startOnMainThread(options = {}) {
 	const config = resolveConfig(options);
 
 	logger.debug('Next.js Extension Configuration:', JSON.stringify(config, undefined, 2));
 
 	return {
 		async setupDirectory(_, componentPath) {
-			logger.info(`Next.js Extension is setting up ${componentPath}`)
+			logger.info(`Next.js Extension is setting up ${componentPath}`);
 
 			assertNextJSApp(componentPath);
 
 			if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
-				await executeCommand(config.installCommand, componentPath)
+				await executeCommand(config.installCommand, componentPath);
 			}
 
 			if (!config.prebuilt && !config.dev) {
-				await executeCommand(config.buildCommand, componentPath)
+				await executeCommand(config.buildCommand, componentPath);
 
 				if (config.buildOnly) process.exit(0);
 			}
 
 			return true;
-		}
-	}
+		},
+	};
 }
 
 /**
  * This method is executed on each worker thread, and is responsible for
  * returning a Resource Extension that will subsequently be executed on each
  * worker thread.
- * 
+ *
  * The Resource Extension is responsible for creating the Next.js server, and
  * hooking into the global HarperDB server.
- * 
- * @param {ExtensionOptions} options 
- * @returns 
+ *
+ * @param {ExtensionOptions} options
+ * @returns
  */
-export function start (options = {}) {
+export function start(options = {}) {
 	const config = resolveConfig(options);
 
 	return {
 		async handleDirectory(_, componentPath) {
-
 			logger.info(`Next.js Extension is creating Next.js Request Handlers for ${componentPath}`);
 
 			assertNextJSApp(componentPath);
+
+			const next = (await import(path.join(componentPath, 'node_modules/next/dist/server/next.js'))).default;
 
 			const app = next({ dir: componentPath, dev: config.dev });
 
@@ -237,13 +244,12 @@ export function start (options = {}) {
 
 			const requestHandler = app.getRequestHandler();
 
-			const servers = options.server.http((request) => {
-				return requestHandler(
-					request._nodeRequest,
-					request._nodeResponse,
-					url.parse(request._nodeRequest.url, true)
-				);
-			}, { port: config.port });
+			const servers = options.server.http(
+				(request) => {
+					return requestHandler(request._nodeRequest, request._nodeResponse, url.parse(request._nodeRequest.url, true));
+				},
+				{ port: config.port }
+			);
 
 			if (config.dev) {
 				const upgradeHandler = app.getUpgradeHandler();
@@ -252,9 +258,9 @@ export function start (options = {}) {
 				});
 			}
 
-			logger.info(`Next.js App available on localhost:${config.port}`)
+			logger.info(`Next.js App available on localhost:${config.port}`);
 
 			return true;
-		}
-	}
+		},
+	};
 }

@@ -15,7 +15,7 @@ npm install @harperdb/nextjs
 2. Add to `config.yaml`:
 
 ```yaml
-@harperdb/nextjs:
+'@harperdb/nextjs':
   package: '@harperdb/nextjs'
   files: '/*'
 ```
@@ -31,6 +31,54 @@ Alternatively, you can use the included `harperdb-nextjs` CLI:
 ```sh
 harperdb-nextjs build | dev | start
 ```
+
+4. Within any server side code paths, you can use [HarperDB Globals]() after importing the HarperDB package:
+
+```js
+// app/actions.js
+'use server';
+
+import('harperdb');
+
+export async function listDogs() {
+	const dogs = [];
+	for await (const dog of tables.Dog.search()) {
+		dogs.push({ id: dog.id, name: dog.name });
+	}
+	return dogs;
+}
+
+export async function getDog(id) {
+	return tables.Dog.get(id);
+}
+
+```
+
+```js
+// app/dogs/[id]/page.jsx
+import { getDog, listDogs } from '@/app/actions';
+
+export async function generateStaticParams() {
+	const dogs = await listDogs();
+
+	return dogs;
+}
+
+export default async function Dog({ params }) {
+	const dog = await getDog(params.id);
+
+	return (
+		<section>
+			<h1>{dog.name}</h1>
+			<p>Breed: {dog.get('breed')}</p>
+			<p>Woof!</p>
+		</section>
+	);
+}
+
+```
+
+> Check out the [HarperDB-Add-Ons/nextjs-example](https://github.com/HarperDB-Add-Ons/nextjs-example) for a complete example.
 
 ## Options
 
@@ -63,3 +111,26 @@ Specify a port for the Next.js server. Defaults to `3000`.
 ### `prebuilt: boolean`
 
 When enabled, the extension will look for a `.next` directory in the root of the component and skip executing the `buildCommand`. Defaults to `false`.
+
+
+## CLI
+
+This package includes a CLI (`harperdb-nextjs`) that is meant to replace certain functions of the Next.js CLI. It will launch HarperDB and set sensible configuration values.
+
+Available commands include:
+
+### `dev`
+
+Launches the application in Next.js development mode, and enables HMR for instantaneous updates when modifying application code.
+
+### `build`
+
+Builds the application and then exits the process.
+
+### `start`
+
+Launches the application in Next.js production mode.
+
+### `help`
+
+Lists available CLI commands.

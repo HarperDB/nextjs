@@ -2,7 +2,12 @@
 
 A HarperDB Component for running and developing Next.js apps.
 
+![NPM Version](https://img.shields.io/npm/v/%40harperdb%2Fnextjs)
+
 Most Next.js features are supported as we rely on the Next.js Server provided by Next.js to run your application.
+
+> [!TIP]
+> Watch a walkthrough of this component in action here: [Next.js on HarperDB | Step-by-Step Guide for Next Level Next.js Performance](https://youtu.be/GqLEwteFJYY)
 
 ## Usage
 

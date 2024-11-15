@@ -1,6 +1,6 @@
 # @harperdb/nextjs
 
-A HarperDB Component for running (and developing) Next.js apps.
+A HarperDB Component for running and developing Next.js apps.
 
 Most Next.js features are supported as we rely on the Next.js Server provided by Next.js to run your application.
 
@@ -32,7 +32,7 @@ Alternatively, you can use the included `harperdb-nextjs` CLI:
 harperdb-nextjs build | dev | start
 ```
 
-4. Within any server side code paths, you can use [HarperDB Globals]() after importing the HarperDB package:
+4. Within any server side code paths, you can use [HarperDB Globals](https://docs.harperdb.io/docs/technical-details/reference/globals) after importing the HarperDB package:
 
 ```js
 // app/actions.js
@@ -78,7 +78,8 @@ export default async function Dog({ params }) {
 
 ```
 
-> Check out the [HarperDB-Add-Ons/nextjs-example](https://github.com/HarperDB-Add-Ons/nextjs-example) for a complete example.
+> [!TIP]
+> Check out the [HarperDB/nextjs-example](https://github.com/HarperDB/nextjs-example) for a complete application example.
 
 ## Options
 

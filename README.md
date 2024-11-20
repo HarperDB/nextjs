@@ -92,7 +92,7 @@ export default async function Dog({ params }) {
 
 ### `buildCommand: string`
 
-Specify a custom build command. Defaults to `next build`.
+Specify a custom build command. Defaults to `npm run build`.
 
 > Note: the extension will skip building if the `prebuilt` option is set to `true`
 

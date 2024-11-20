@@ -5,7 +5,6 @@ import child_process from 'node:child_process';
 import events from 'node:events';
 import assert from 'node:assert';
 
-// import next from 'next';
 import semver from 'semver';
 import shellQuote from 'shell-quote';
 
@@ -69,7 +68,7 @@ function resolveConfig(options) {
 
 	// Memoize config resolution
 	return (CONFIG = {
-		buildCommand: options.buildCommand ?? 'next build',
+		buildCommand: options.buildCommand ?? 'npm run build',
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
@@ -85,18 +84,18 @@ const nextJSAppCache = {};
 /**
  * This function verifies if the input is a Next.js app through a couple of
  * verification methods. It does not return nor throw anything. It will either
- * silently succeed, or log an error to `logger.fatal` and exit the process
- * with exit code 1.
+ * succeed (and return the path to the Next.js main file), or log an error to 
+ * `logger.fatal` and exit the process with exit code 1.
  *
  * Additionally, it memoizes previous verifications.
  *
  * @param {string} componentPath
- * @returns void
+ * @returns {string} The path to the Next.js main file
  */
 function assertNextJSApp(componentPath) {
 	try {
 		if (nextJSAppCache[componentPath]) {
-			return;
+			return nextJSAppCache[componentPath];
 		}
 
 		if (!fs.existsSync(componentPath)) {
@@ -125,18 +124,20 @@ function assertNextJSApp(componentPath) {
 			fs.existsSync(path.join(componentPath, 'next.config.ts'));
 
 		// Check for dependency
-		let dependencyExists = false;
-		let packageJSONPath = path.join(componentPath, 'package.json');
+		let nextjsPath;
+		const packageJSONPath = path.join(componentPath, 'package.json');
 		if (fs.existsSync(packageJSONPath)) {
 			let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
 			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
-				let nextJSVersion = packageJSON[dependencyList]?.['next'];
-				if (nextJSVersion) {
-					if (!semver.satisfies(semver.minVersion(nextJSVersion), '>=14.0.0')) {
-						throw new NextJSAppVerificationError(`Next.js version must be >=14.0.0. Found ${nextJSVersion}`);
+				if (packageJSON[dependencyList]?.['next']) {
+					const nextJSPackageJSONPath = path.join(componentPath, 'node_modules', 'next', 'package.json');
+					if (fs.existsSync(nextJSPackageJSONPath)) {
+						const nextJSPackageJSON = JSON.parse(fs.readFileSync(nextJSPackageJSONPath));
+						if (nextJSPackageJSON.main) {
+							nextjsPath = path.join(componentPath, 'node_modules', 'next', mainPath);
+							break;
+						}
 					}
-					dependencyExists = true;
-					break;
 				}
 			}
 		}
@@ -147,7 +148,9 @@ function assertNextJSApp(componentPath) {
 			);
 		}
 
-		nextJSAppCache[componentPath] = true;
+		nextJSAppCache[componentPath] = nextjsPath;
+
+		return nextjsPath;
 	} catch (error) {
 		if (error instanceof NextJSAppVerificationError) {
 			logger.fatal(`Component path is not a Next.js application: `, error.message);
@@ -169,12 +172,19 @@ function assertNextJSApp(componentPath) {
  */
 async function executeCommand(commandInput, componentPath) {
 	const [command, ...args] = shellQuote.parse(commandInput);
-	const cp = child_process.spawn(command, args, {
+	let cp = child_process.spawn('which', command, { stdio: 'ignore' });
+	let [exitCode] = await events.once(cp, 'exit');
+	if (exitCode !== 0) {
+		throw new Error(`Command \`${command}\` not found. Ensure it is included within process.env.PATH`);
+	}
+	cp = child_process.spawn(command, args, {
 		cwd: componentPath,
 		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
 	});
-
-	const [exitCode] = await events.once(cp, 'exit');
+	cp.on('error', (error) => {
+		throw error;
+	});
+	([exitCode] = await events.once(cp, 'exit'));
 
 	logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
 }
@@ -234,9 +244,9 @@ export function start(options = {}) {
 		async handleDirectory(_, componentPath) {
 			logger.info(`Next.js Extension is creating Next.js Request Handlers for ${componentPath}`);
 
-			assertNextJSApp(componentPath);
+			const nextJSMainPath = assertNextJSApp(componentPath);
 
-			const next = (await import(path.join(componentPath, 'node_modules/next/dist/server/next.js'))).default;
+			const next = (await import(nextJSMainPath)).default;
 
 			const app = next({ dir: componentPath, dev: config.dev });
 

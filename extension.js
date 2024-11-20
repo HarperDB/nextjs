@@ -83,7 +83,7 @@ const nextJSAppCache = {};
 /**
  * This function verifies if the input is a Next.js app through a couple of
  * verification methods. It does not return nor throw anything. It will either
- * succeed (and return the path to the Next.js main file), or log an error to 
+ * succeed (and return the path to the Next.js main file), or log an error to
  * `logger.fatal` and exit the process with exit code 1.
  *
  * Additionally, it memoizes previous verifications.
@@ -185,7 +185,7 @@ async function executeCommand(commandInput, componentPath) {
 	cp.on('error', (error) => {
 		throw error;
 	});
-	([exitCode] = await events.once(cp, 'exit'));
+	[exitCode] = await events.once(cp, 'exit');
 
 	logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
 }

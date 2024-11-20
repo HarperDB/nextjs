@@ -5,7 +5,6 @@ import child_process from 'node:child_process';
 import events from 'node:events';
 import assert from 'node:assert';
 
-import semver from 'semver';
 import shellQuote from 'shell-quote';
 
 /**
@@ -68,7 +67,7 @@ function resolveConfig(options) {
 
 	// Memoize config resolution
 	return (CONFIG = {
-		buildCommand: options.buildCommand ?? 'npm run build',
+		buildCommand: options.buildCommand ?? 'next build',
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
@@ -134,7 +133,7 @@ function assertNextJSApp(componentPath) {
 					if (fs.existsSync(nextJSPackageJSONPath)) {
 						const nextJSPackageJSON = JSON.parse(fs.readFileSync(nextJSPackageJSONPath));
 						if (nextJSPackageJSON.main) {
-							nextjsPath = path.join(componentPath, 'node_modules', 'next', mainPath);
+							nextjsPath = path.join(componentPath, 'node_modules', 'next', nextJSPackageJSON.main);
 							break;
 						}
 					}
@@ -172,13 +171,15 @@ function assertNextJSApp(componentPath) {
  */
 async function executeCommand(commandInput, componentPath) {
 	const [command, ...args] = shellQuote.parse(commandInput);
-	let cp = child_process.spawn('which', command, { stdio: 'ignore' });
+	const env = { ...process.env, PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin` };
+	let cp = child_process.spawn('which', [command], { cwd: componentPath, env, stdio: 'ignore' });
 	let [exitCode] = await events.once(cp, 'exit');
 	if (exitCode !== 0) {
 		throw new Error(`Command \`${command}\` not found. Ensure it is included within process.env.PATH`);
 	}
 	cp = child_process.spawn(command, args, {
 		cwd: componentPath,
+		env,
 		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
 	});
 	cp.on('error', (error) => {

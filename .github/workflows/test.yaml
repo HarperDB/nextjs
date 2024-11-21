@@ -40,6 +40,7 @@ jobs:
             --HDB_ADMIN_PASSWORD ${{ env.HDB_ADMIN_PASSWORD }} \
             --ROOTPATH ${{ env.HDB_ROOT_PATH }} \
             --OPERATIONSAPI_NETWORK_PORT 9925
+          harperdb stop
 
       - name: Load Base Component
         run: |
@@ -51,7 +52,7 @@ jobs:
       
       - name: Query
         run: |
-          curl http://localhost:9926/Dog/0
+          curl http://localhost:9925/Dog/0
       # - name: Install dependencies
       #   run: |
       #     npm install

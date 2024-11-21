@@ -39,23 +39,22 @@ jobs:
             --HDB_ADMIN_USERNAME ${{ env.HDB_ADMIN_USERNAME }} \
             --HDB_ADMIN_PASSWORD ${{ env.HDB_ADMIN_PASSWORD }} \
             --ROOTPATH ${{ env.HDB_ROOT_PATH }} \
-            --OPERATIONSAPI_NETWORK_PORT 9925
+            --OPERATIONSAPI_NETWORK_PORT 9925 \
+            --LOGGING_STDSTREAMS true
           sleep 15
-          harperdb stop
 
       - name: Load Base Component
         run: |
-          ls .
           cp -r test/integration/harperdb-base-component ${{ env.HDB_ROOT_PATH }}/components/
 
       - name: Start HarperDB
         run: |
-          harperdb start
+          harperdb restart
           sleep 15
-      
+
       - name: Query
         run: |
-          curl http://localhost:9926/Dog/0
+          curl "http://localhost:9926/Dog/0"
 
       - name: Stop HarperDB
         run: |

@@ -34,12 +34,12 @@ jobs:
       - name: Setup HarperDB
         run: |
           npm install -g harperdb
-          timeout 30s harperdb install \
+          harperdb start \
             --TC_AGREEMENT yes \
             --HDB_ADMIN_USERNAME ${{ env.HDB_ADMIN_USERNAME }} \
             --HDB_ADMIN_PASSWORD ${{ env.HDB_ADMIN_PASSWORD }} \
             --ROOTPATH ${{ env.HDB_ROOT_PATH }} \
-            --OPERATIONSAPI_NETWORK_PORT 9925 || true
+            --OPERATIONSAPI_NETWORK_PORT 9925
           harperdb stop
 
       - name: Load Base Component
@@ -53,6 +53,10 @@ jobs:
       - name: Query
         run: |
           curl http://localhost:9925/Dog/0
+
+      - name: Stop HarperDB
+        run: |
+          harperdb stop
       # - name: Install dependencies
       #   run: |
       #     npm install

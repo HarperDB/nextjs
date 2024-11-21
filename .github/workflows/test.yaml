@@ -39,7 +39,7 @@ jobs:
             --HDB_ADMIN_USERNAME ${{ env.HDB_ADMIN_USERNAME }} \
             --HDB_ADMIN_PASSWORD ${{ env.HDB_ADMIN_PASSWORD }} \
             --ROOTPATH ${{ env.HDB_ROOT_PATH }} \
-            --OPERATIONSAPI_NETWORK_PORT 9925
+            --OPERATIONSAPI_NETWORK_PORT 9925 || true
           harperdb stop
 
       - name: Load Base Component

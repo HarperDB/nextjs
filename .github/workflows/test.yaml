@@ -45,6 +45,7 @@ jobs:
 
       - name: Load Base Component
         run: |
+          ls .
           cp -r test/integration/harperdb-base-component ${{ env.HDB_ROOT_PATH }}/components/
 
       - name: Start HarperDB

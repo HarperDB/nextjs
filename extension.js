@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 import child_process from 'node:child_process';
-import events from 'node:events';
 import assert from 'node:assert';
 
 import shellQuote from 'shell-quote';
@@ -169,25 +168,28 @@ function assertNextJSApp(componentPath) {
  * @param {string} componentPath The path to the application component
  * @param {boolean=} debug Print debugging information. Defaults to false
  */
-async function executeCommand(commandInput, componentPath) {
-	const [command, ...args] = shellQuote.parse(commandInput);
-	const env = { ...process.env, PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin` };
-	let cp = child_process.spawn('which', [command], { cwd: componentPath, env, stdio: 'ignore' });
-	let [exitCode] = await events.once(cp, 'exit');
-	if (exitCode !== 0) {
-		throw new Error(`Command \`${command}\` not found. Ensure it is included within process.env.PATH`);
-	}
-	cp = child_process.spawn(command, args, {
-		cwd: componentPath,
-		env,
-		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
-	});
-	cp.on('error', (error) => {
-		throw error;
-	});
-	[exitCode] = await events.once(cp, 'exit');
+function executeCommand(commandInput, componentPath) {
+	return new Promise((resolve, reject) => {
+		const [command, ...args] = shellQuote.parse(commandInput);
 
-	logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
+		const cp = child_process.spawn(command, args, {
+			cwd: componentPath,
+			env: { ...process.env, PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin` },
+			stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
+		});
+
+		cp.on('error', (error) => {
+			if (error.code === 'ENOENT') {
+				logger.fatal(`Command: \`${commandInput}\` not found. Make sure it is included in PATH.`);
+			}
+			reject(error);
+		});
+
+		cp.on('exit', (exitCode) => {
+			logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
+			resolve(exitCode);
+		});
+	});
 }
 
 /**

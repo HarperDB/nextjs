@@ -34,7 +34,7 @@ jobs:
       - name: Setup HarperDB
         run: |
           npm install -g harperdb
-          harperdb install \
+          timeout 30s harperdb install \
             --TC_AGREEMENT yes \
             --HDB_ADMIN_USERNAME ${{ env.HDB_ADMIN_USERNAME }} \
             --HDB_ADMIN_PASSWORD ${{ env.HDB_ADMIN_PASSWORD }} \

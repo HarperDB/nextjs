@@ -12,10 +12,11 @@ RUN npm install -g harperdb
 
 COPY harperdb-base-component/ ./hdb/components/
 
+ARG NODE_MAJOR
+
 FROM node-base-${NODE_MAJOR}
 
 ARG NEXT_MAJOR
-ARG NODE_MAJOR
 
 COPY next-${NEXT_MAJOR}/ ./hdb/components/
 

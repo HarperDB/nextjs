@@ -32,7 +32,8 @@
 		"cli.js"
 	],
 	"scripts": {
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"test:integration": "node ./scripts/run-integration-tests.js"
 	},
 	"dependencies": {
 		"semver": "^7.6.3",

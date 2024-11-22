@@ -2,70 +2,25 @@ name: Next.js Version Matrix Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
-
-env:
-  HDB_ADMIN_USERNAME: "hdb_admin"
-  HDB_ADMIN_PASSWORD: "password"
-  HDB_ROOT_PATH: "/tmp/hdb"
+    branches: [main]
 
 jobs:
+  # Skip for now
+  if: ${{ false }}
   test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        # next-version: [9, 10, 11, 12, 13, 14, 15]
-        node-version: [16, 18, 20, 21, 22]
+        next-version: [9, 10, 11, 12, 13, 14, 15]
+        node-version: [16, 18, 20, 22]
         # exclude:
-          # - next-version: 9
-            # node-version: 18
+        # - next-version: 9
+        # node-version: 18
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Setup HarperDB
-        run: |
-          npm install -g harperdb
-          harperdb start \
-            --TC_AGREEMENT yes \
-            --HDB_ADMIN_USERNAME ${{ env.HDB_ADMIN_USERNAME }} \
-            --HDB_ADMIN_PASSWORD ${{ env.HDB_ADMIN_PASSWORD }} \
-            --ROOTPATH ${{ env.HDB_ROOT_PATH }} \
-            --OPERATIONSAPI_NETWORK_PORT 9925 \
-            --LOGGING_STDSTREAMS true
-          sleep 15
-
-      - name: Load Base Component
-        run: |
-          cp -r test/integration/harperdb-base-component ${{ env.HDB_ROOT_PATH }}/components/
-
-      - name: Start HarperDB
-        run: |
-          harperdb restart
-          sleep 15
-
-      - name: Query
-        run: |
-          curl "http://localhost:9926/Dog/0"
-
-      - name: Stop HarperDB
-        run: |
-          harperdb stop
-      # - name: Install dependencies
-      #   run: |
-      #     npm install
-      #     npm install next@${{ matrix.next-version }}
-          
-      # - name: Build
-      #   run: npm run build
-        
-      # - name: Test
-      #   run: npm test
+      # TODO: invoke the integration container
+      # TODO: find interoperability with the scripts/run-integration-tests.js

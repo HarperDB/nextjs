@@ -11,7 +11,7 @@ Most Next.js features are supported as we rely on the Next.js Server provided by
 
 ## Usage
 
-> [!NOTE] 
+> [!NOTE]
 > This guide assumes you're already familiar with [HarperDb Components](https://docs.harperdb.io/docs/developers/components). Please review the documentation, or check out the HarperDB [Next.js Example](https://github.com/HarperDB/nextjs-example) for more information.
 
 1. Install:
@@ -59,7 +59,6 @@ export async function listDogs() {
 export async function getDog(id) {
 	return tables.Dog.get(id);
 }
-
 ```
 
 ```js
@@ -83,7 +82,6 @@ export default async function Dog({ params }) {
 		</section>
 	);
 }
-
 ```
 
 ## Options
@@ -117,7 +115,6 @@ Specify a port for the Next.js server. Defaults to `3000`.
 ### `prebuilt: boolean`
 
 When enabled, the extension will look for a `.next` directory in the root of the component and skip executing the `buildCommand`. Defaults to `false`.
-
 
 ## CLI
 

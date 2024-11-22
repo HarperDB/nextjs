@@ -140,7 +140,7 @@ function assertNextJSApp(componentPath) {
 			}
 		}
 
-		if (!configExists && !dependencyExists) {
+		if (!configExists && !nextjsPath) {
 			throw new NextJSAppVerificationError(
 				`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`
 			);

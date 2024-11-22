@@ -105,7 +105,7 @@ function assertNextJSApp(componentPath) {
 		}
 
 		// Couple options to check if its a Next.js project
-		// 1. Check for Next.js config file (next.config.{js|ts})
+		// 1. Check for Next.js config file (next.config.{js|mjs|ts})
 		//    - This file is not required for a Next.js project
 		// 2. Check package.json for Next.js dependency
 		//    - It could be listed in `dependencies` or `devDependencies` (and maybe even `peerDependencies` or `optionalDependencies`)
@@ -119,6 +119,7 @@ function assertNextJSApp(componentPath) {
 		// Check for Next.js Config
 		const configExists =
 			fs.existsSync(path.join(componentPath, 'next.config.js')) ||
+			fs.existsSync(path.join(componentPath, 'next.config.mjs')) ||
 			fs.existsSync(path.join(componentPath, 'next.config.ts'));
 
 		// Check for dependency

@@ -8,12 +8,16 @@ RUN apt-get update && apt-get install -y \
 
 RUN npm install -g harperdb
 
+# TODO Setup HarperDB to rootpath /hdb/
+
+COPY harperdb-base-component/ ./hdb/components/
+
 FROM node-base-${NODE_MAJOR}
 
 ARG NEXT_MAJOR
 ARG NODE_MAJOR
 
-COPY next-${NEXT_MAJOR}/ ./template/
+COPY next-${NEXT_MAJOR}/ ./hdb/components/
 
 EXPOSE 3000
 CMD ["node", "template/index.js"]

@@ -108,6 +108,16 @@ Specify an install command. Defaults to `npm install`.
 
 > Note: the extension will skip installing dependencies if it detects a `node_modules` folder in the application component.
 
+### `monorepo: boolean`
+
+Enable monorepo mode. Defaults to `false`.
+
+> Note: Generally, in monorepo mode, the build command will not the `next build`, so it is important to also update the `buildCommand` option.
+> 
+> For Example:
+> - Nx: `npx nx build <app-name>`
+> - Turbo: `npx turbo build -F <app-name>`
+
 ### `port: number`
 
 Specify a port for the Next.js server. Defaults to `3000`.

@@ -12,6 +12,7 @@ import shellQuote from 'shell-quote';
  * @property {string=} buildOnly - Build the Next.js app and exit. Defaults to `false`.
  * @property {boolean=} dev - Enable dev mode. Defaults to `false`.
  * @property {string=} installCommand - A custom install command. Defaults to `npm install`.
+ * @property {boolean=} monorepo - Enable monorepo mode. Defaults to `false`.
  * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
  */
@@ -61,6 +62,7 @@ function resolveConfig(options) {
 	assertType('buildCommand', options.buildCommand, 'string');
 	assertType('dev', options.dev, 'boolean');
 	assertType('installCommand', options.installCommand, 'string');
+	assertType('monorepo', options.monorepo, 'boolean');
 	assertType('port', options.port, 'number');
 	assertType('prebuilt', options.prebuilt, 'boolean');
 
@@ -70,6 +72,7 @@ function resolveConfig(options) {
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
+		monorepo: options.monorepo ?? false,
 		port: options.port ?? 3000,
 		prebuilt: options.prebuilt ?? false,
 	});
@@ -78,6 +81,60 @@ function resolveConfig(options) {
 class NextJSAppVerificationError extends Error {}
 
 const nextJSAppCache = {};
+
+function getNextJSMainField(nextJSPackageJSONPath) {
+	// If the Next.js dependency package.json exists, read it and look for `main` property
+	// Okay with throwing here, as we expect the package.json to be valid
+	const nextJSPackageJSON = JSON.parse(fs.readFileSync(nextJSPackageJSONPath));
+
+	// validate
+	if (!nextJSPackageJSON.main) {
+		throw new Error(`Next.js package.json at ${nextJSPackageJSONPath} does not have a main field`);
+	}
+
+	if (typeof nextJSPackageJSON.main !== 'string') {
+		throw new Error(`Next.js package.json at ${nextJSPackageJSONPath} has a non-string main field`);
+	}
+
+	// return the contents of the main field
+	return path.join(path.dirname(nextJSPackageJSONPath), nextJSPackageJSON.main);
+}
+
+function findNextJSDependency(componentPath) {
+	// In either a regular project or a monorepo first check if the project has a direct dependency on Next.js
+	// Let this throw if read file fails for any reason. The project should have a package.json
+	let packageJSONPath = path.join(componentPath, 'package.json');
+	let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
+
+	for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+		if (packageJSON[dependencyList]?.['next']) {
+			// First, try and see if the next package is within the node_modules folder of the current path.
+			// In a regular project this is what is expected.
+			// In a monorepo, it may or may not be here, so don't throw if it's not found.
+			let nextJSPackageJSONPath = path.join(componentPath, 'node_modules', 'next', 'package.json');
+
+			if (fs.existsSync(nextJSPackageJSONPath)) {
+				return getNextJSMainField(nextJSPackageJSONPath);
+			} else {
+				// If the Next.js package.json does not exist in the current path, find the closest parent package.json and try again.
+				while (!fs.existsSync((packageJSONPath = path.join(path.dirname(packageJSONPath), '..', 'package.json'))));
+				{
+					if (packageJSONPath === '/') {
+						throw new Error('No parent package.json found. Are you sure this is a monorepo?');
+					}
+				}
+
+				nextJSPackageJSONPath = path.join(path.dirname(packageJSONPath), 'node_modules', 'next', 'package.json');
+
+				if (fs.existsSync(nextJSPackageJSONPath)) {
+					return getNextJSMainField(nextJSPackageJSONPath);
+				} else {
+					throw new Error(`Next.js package.json not found in ${componentPath} or its parent directories`);
+				}
+			}
+		}
+	}
+}
 
 /**
  * This function verifies if the input is a Next.js app through a couple of
@@ -123,33 +180,17 @@ function assertNextJSApp(componentPath) {
 			fs.existsSync(path.join(componentPath, 'next.config.ts'));
 
 		// Check for dependency
-		let nextjsPath;
-		const packageJSONPath = path.join(componentPath, 'package.json');
-		if (fs.existsSync(packageJSONPath)) {
-			let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
-			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
-				if (packageJSON[dependencyList]?.['next']) {
-					const nextJSPackageJSONPath = path.join(componentPath, 'node_modules', 'next', 'package.json');
-					if (fs.existsSync(nextJSPackageJSONPath)) {
-						const nextJSPackageJSON = JSON.parse(fs.readFileSync(nextJSPackageJSONPath));
-						if (nextJSPackageJSON.main) {
-							nextjsPath = path.join(componentPath, 'node_modules', 'next', nextJSPackageJSON.main);
-							break;
-						}
-					}
-				}
-			}
-		}
+		const nextJSPath = findNextJSDependency(componentPath);
 
-		if (!configExists && !nextjsPath) {
+		if (!configExists && !nextJSPath) {
 			throw new NextJSAppVerificationError(
 				`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`
 			);
 		}
 
-		nextJSAppCache[componentPath] = nextjsPath;
+		nextJSAppCache[componentPath] = nextJSPath;
 
-		return nextjsPath;
+		return nextJSPath;
 	} catch (error) {
 		if (error instanceof NextJSAppVerificationError) {
 			logger.fatal(`Component path is not a Next.js application: `, error.message);
@@ -193,6 +234,18 @@ function executeCommand(commandInput, componentPath) {
 	});
 }
 
+function getMonorepoRootPath(componentPath) {
+	let packageJSONPath = path.join(componentPath, 'package.json');
+	while (!fs.existsSync((packageJSONPath = path.join(path.dirname(packageJSONPath), '..', 'package.json'))));
+	{
+		if (packageJSONPath === '/') {
+			throw new Error('No parent package.json found. Are you sure this is a monorepo?');
+		}
+	}
+
+	return path.dirname(packageJSONPath);
+}
+
 /**
  * This method is executed once, on the main thread, and is responsible for
  * returning a Resource Extension that will subsequently be executed once,
@@ -213,14 +266,17 @@ export function startOnMainThread(options = {}) {
 		async setupDirectory(_, componentPath) {
 			logger.info(`Next.js Extension is setting up ${componentPath}`);
 
+			const rootPath = config.monorepo ? getMonorepoRootPath(componentPath) : componentPath;
+
+			// TODO: Find a way to simplify assertNextJSApp using rootPath
 			assertNextJSApp(componentPath);
 
-			if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
-				await executeCommand(config.installCommand, componentPath);
+			if (!fs.existsSync(path.join(rootPath, 'node_modules'))) {
+				await executeCommand(config.installCommand, rootPath);
 			}
 
 			if (!config.prebuilt && !config.dev) {
-				await executeCommand(config.buildCommand, componentPath);
+				await executeCommand(config.buildCommand, rootPath);
 
 				if (config.buildOnly) process.exit(0);
 			}

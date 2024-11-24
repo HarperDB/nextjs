@@ -116,6 +116,10 @@ Specify a port for the Next.js server. Defaults to `3000`.
 
 When enabled, the extension will look for a `.next` directory in the root of the component and skip executing the `buildCommand`. Defaults to `false`.
 
+### `subPath: string`
+
+Specify a sub path to route requests from. For example, with `subPath: 'harperdb'`, any requests within the Next.js app to that path, such as `/harperdb/image.png`, will be rerouted to `/image.png`. Defaults to `''`.
+
 ## CLI
 
 This package includes a CLI (`harperdb-nextjs`) that is meant to replace certain functions of the Next.js CLI. It will launch HarperDB and set sensible configuration values.

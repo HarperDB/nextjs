@@ -14,6 +14,7 @@ import shellQuote from 'shell-quote';
  * @property {string=} installCommand - A custom install command. Defaults to `npm install`.
  * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
+ * @property {string=} subPath - A sub path for serving request from. Defaults to `''`.
  */
 
 // Memoized Configuration
@@ -63,6 +64,15 @@ function resolveConfig(options) {
 	assertType('installCommand', options.installCommand, 'string');
 	assertType('port', options.port, 'number');
 	assertType('prebuilt', options.prebuilt, 'boolean');
+	assertType('subPath', options.subPath, 'string');
+
+	// Remove leading and trailing slashes from subPath
+	if (options.subPath?.[0] === '/') {
+		options.subPath = options.subPath.slice(1);
+	}
+	if (options.subPath?.[options.subPath?.length - 1] === '/') {
+		options.subPath = options.subPath.slice(0, -1);
+	}
 
 	// Memoize config resolution
 	return (CONFIG = {
@@ -72,6 +82,7 @@ function resolveConfig(options) {
 		installCommand: options.installCommand ?? 'npm install',
 		port: options.port ?? 3000,
 		prebuilt: options.prebuilt ?? false,
+		subPath: options.subPath ?? '',
 	});
 }
 
@@ -260,6 +271,9 @@ export function start(options = {}) {
 
 			const servers = options.server.http(
 				(request) => {
+					request._nodeRequest.url = config.subPath
+						? request._nodeRequest.url.replace(new RegExp(`^\/${subPath}\/`), '/')
+						: request._nodeRequest.url;
 					return requestHandler(request._nodeRequest, request._nodeResponse, url.parse(request._nodeRequest.url, true));
 				},
 				{ port: config.port }

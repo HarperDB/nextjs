@@ -4,7 +4,7 @@ import url from 'node:url';
 import child_process from 'node:child_process';
 import events from 'node:events';
 import assert from 'node:assert';
-
+import { createRequire } from 'node:module';
 import shellQuote from 'shell-quote';
 
 /**
@@ -129,14 +129,8 @@ function assertNextJSApp(componentPath) {
 			let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
 			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
 				if (packageJSON[dependencyList]?.['next']) {
-					const nextJSPackageJSONPath = path.join(componentPath, 'node_modules', 'next', 'package.json');
-					if (fs.existsSync(nextJSPackageJSONPath)) {
-						const nextJSPackageJSON = JSON.parse(fs.readFileSync(nextJSPackageJSONPath));
-						if (nextJSPackageJSON.main) {
-							nextjsPath = path.join(componentPath, 'node_modules', 'next', nextJSPackageJSON.main);
-							break;
-						}
-					}
+					const require = createRequire(componentPath);
+					return require.resolve('next');
 				}
 			}
 		}

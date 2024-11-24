@@ -220,7 +220,7 @@ export function startOnMainThread(options = {}) {
 
 			assertNextJSApp(componentPath);
 
-			if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
+			if (!config.prebuilt && !fs.existsSync(path.join(componentPath, 'node_modules'))) {
 				await executeCommand(config.installCommand, componentPath);
 			}
 
@@ -266,7 +266,7 @@ export function start(options = {}) {
 			const servers = options.server.http(
 				(request) => {
 					request._nodeRequest.url = config.subPath
-						? request._nodeRequest.url.replace(new RegExp(`^\/${subPath}\/`), '/')
+						? request._nodeRequest.url.replace(new RegExp(`^\/${config.subPath}\/`), '/')
 						: request._nodeRequest.url;
 					return requestHandler(request._nodeRequest, request._nodeResponse, url.parse(request._nodeRequest.url, true));
 				},

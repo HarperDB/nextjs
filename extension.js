@@ -4,6 +4,7 @@ import url from 'node:url';
 import child_process from 'node:child_process';
 import assert from 'node:assert';
 import { createRequire } from 'node:module';
+
 import shellQuote from 'shell-quote';
 
 /**
@@ -16,9 +17,6 @@ import shellQuote from 'shell-quote';
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
  * @property {string=} subPath - A sub path for serving request from. Defaults to `''`.
  */
-
-// Memoized Configuration
-let CONFIG;
 
 /**
  * Assert that a given option is a specific type
@@ -40,8 +38,6 @@ function assertType(name, option, expectedType) {
  * @returns {Required<ExtensionOptions>}
  */
 function resolveConfig(options) {
-	if (CONFIG) return CONFIG; // return memoized config
-
 	// Environment Variables take precedence
 	switch (process.env.HARPERDB_NEXTJS_MODE) {
 		case 'dev':
@@ -74,8 +70,7 @@ function resolveConfig(options) {
 		options.subPath = options.subPath.slice(0, -1);
 	}
 
-	// Memoize config resolution
-	return (CONFIG = {
+	return {
 		buildCommand: options.buildCommand ?? 'next build',
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
@@ -83,7 +78,7 @@ function resolveConfig(options) {
 		port: options.port ?? 3000,
 		prebuilt: options.prebuilt ?? false,
 		subPath: options.subPath ?? '',
-	});
+	};
 }
 
 class NextJSAppVerificationError extends Error {}

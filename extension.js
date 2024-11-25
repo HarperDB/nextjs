@@ -259,7 +259,10 @@ export function start(options = {}) {
 			const requestHandler = app.getRequestHandler();
 
 			const servers = options.server.http(
-				(request) => {
+				(request, nextHandler) => {
+					if (config.subPath && !request._nodeRequest.url.startsWith(`/${config.subPath}/`)) {
+						return nextHandler(request);
+					}
 					request._nodeRequest.url = config.subPath
 						? request._nodeRequest.url.replace(new RegExp(`^\/${config.subPath}\/`), '/')
 						: request._nodeRequest.url;

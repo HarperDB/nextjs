@@ -34,7 +34,7 @@
 	],
 	"scripts": {
 		"format": "prettier --write .",
-		"test:integration": "node ./scripts/run-integration-tests.js"
+		"test": "node --test \"test/**/*.test.js\""
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"

@@ -1,4 +1,4 @@
-type NextCache @table(database: "cache" expiration: 3600) @export {
+type NextCache @table(database: "cache", expiration: 3600) @export {
 	id: ID @primaryKey
 	headers: Any
 	content: Bytes

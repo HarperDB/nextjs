@@ -217,6 +217,11 @@ export function startOnMainThread(options = {}) {
 			logger.info(`Next.js Extension is setting up ${componentPath}`);
 
 			assertNextJSApp(componentPath);
+			try {
+				createRequire(componentPath)('./next.config.js');
+			} catch (error) {
+				logger.error('Failed to load next.config.js', error);
+			}
 
 			if (!config.prebuilt && !fs.existsSync(path.join(componentPath, 'node_modules'))) {
 				await executeCommand(config.installCommand, componentPath);

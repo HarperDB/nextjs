@@ -34,7 +34,7 @@
 	],
 	"scripts": {
 		"format": "prettier --write .",
-		"test": "node --test \"test/**/*.test.js\""
+		"test": "node --test --test-concurrency=3 --experimental-test-isolation=process \"test/**/*.test.js\""
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"

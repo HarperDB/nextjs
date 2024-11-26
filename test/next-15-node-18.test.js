@@ -2,11 +2,11 @@ import { suite, test, before, after } from 'node:test';
 import { once } from 'node:events';
 import { Fixture } from './util.js';
 
-suite('Next.js v15 - Node.js v20', async () => {
+suite('Next.js v15 - Node.js v18', async () => {
 	const ctx = {};
 
 	before(async () => {
-		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '20' });
+		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18' });
 		await once(ctx.fixture, 'ready');
 		ctx.rest = `http://${ctx.fixture.portMap.get('9926')}`;
 	});

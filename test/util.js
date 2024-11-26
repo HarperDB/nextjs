@@ -31,7 +31,7 @@ function buildContainer({ nextMajor, nodeMajor, containerEngine }) {
 
 	const imageName = `hdb-next-integration-test-image-next-${nextMajor}-node-${nodeMajor}`;
 
-	console.log(`🏗️  Building ${imageName}...`);
+	// console.log(`🏗️  Building ${imageName}...`);
 
 	child_process.spawnSync(
 		containerEngine,
@@ -39,9 +39,18 @@ function buildContainer({ nextMajor, nodeMajor, containerEngine }) {
 		{ cwd: FIXTURE_PATH_URL, stdio: process.env.DEBUG === '1' ? 'inherit' : 'ignore' }
 	);
 
-	console.log(`🏗️  Build complete!`);
+	// console.log(`🏗️  Build complete!`);
 
 	return imageName;
+}
+
+function determinePortMapping({ containerName, containerEngine }) {
+	const portMap = new Map();
+	for (const port of ['9925', '9926']) {
+		const { stdout } = child_process.spawnSync(containerEngine, ['port', containerName, port]);
+		portMap.set(port, stdout.toString().trim());
+	}
+	return portMap;
 }
 
 function runContainer({ nextMajor, nodeMajor, imageName, containerEngine }) {
@@ -53,12 +62,7 @@ function runContainer({ nextMajor, nodeMajor, imageName, containerEngine }) {
 
 	clearContainer({ containerEngine, containerName });
 
-	const runProcess = child_process.spawn(
-		containerEngine,
-		['run', '-p', '9925:9925', '-p', '9926:9926', '--name', containerName, imageName] /*, {
-		stdio: process.env.DEBUG ? 'inherit' : 'ignore' 
-	}*/
-	);
+	const runProcess = child_process.spawn(containerEngine, ['run', '-P', '--name', containerName, imageName]);
 
 	return { containerName, runProcess };
 }
@@ -71,9 +75,10 @@ export class Fixture extends EventEmitter {
 
 		this.imageName = buildContainer({ nextMajor, nodeMajor, containerEngine: this.containerEngine });
 
-		const { containerName, runProcess } = runContainer({
+		const { containerName, runProcess, portMap } = runContainer({
+			nextMajor,
+			nodeMajor,
 			imageName: this.imageName,
-			containerName: this.containerName,
 			containerEngine: this.containerEngine,
 		});
 
@@ -82,6 +87,11 @@ export class Fixture extends EventEmitter {
 
 		this.runProcess.stdout.on('data', (data) => {
 			if (data.toString().includes('HarperDB 4.4.5 successfully started')) {
+				this.portMap = determinePortMapping({
+					containerName: this.containerName,
+					containerEngine: this.containerEngine,
+				});
+
 				this.emit('ready');
 			}
 		});
@@ -91,3 +101,5 @@ export class Fixture extends EventEmitter {
 		clearContainer({ containerEngine: this.containerEngine, containerName: this.containerName });
 	}
 }
+
+// const f = new Fixture({ nextMajor: '15', nodeMajor: '20' });

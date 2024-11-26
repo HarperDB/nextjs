@@ -1,6 +1,6 @@
 {
 	"name": "@harperdb/nextjs",
-	"version": "0.0.4",
+	"version": "0.0.12",
 	"type": "module",
 	"description": "A HarperDB Component for running Next.js apps.",
 	"keywords": [
@@ -29,14 +29,14 @@
 	"files": [
 		"config.yaml",
 		"extension.js",
-		"cli.js"
+		"cli.js",
+		"schema.graphql"
 	],
 	"scripts": {
 		"format": "prettier --write .",
 		"test:integration": "node ./scripts/run-integration-tests.js"
 	},
 	"dependencies": {
-		"semver": "^7.6.3",
 		"shell-quote": "^1.8.1"
 	},
 	"devDependencies": {

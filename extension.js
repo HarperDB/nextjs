@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 import child_process from 'node:child_process';
-import events from 'node:events';
 import assert from 'node:assert';
+import { createRequire } from 'node:module';
 
-// import next from 'next';
-import semver from 'semver';
 import shellQuote from 'shell-quote';
+
+const { NextCache } = databases.cache;
 
 /**
  * @typedef {Object} ExtensionOptions - The configuration options for the extension. These are all configurable via `config.yaml`.
@@ -17,10 +17,8 @@ import shellQuote from 'shell-quote';
  * @property {string=} installCommand - A custom install command. Defaults to `npm install`.
  * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
+ * @property {string=} subPath - A sub path for serving request from. Defaults to `''`.
  */
-
-// Memoized Configuration
-let CONFIG;
 
 /**
  * Assert that a given option is a specific type
@@ -42,8 +40,6 @@ function assertType(name, option, expectedType) {
  * @returns {Required<ExtensionOptions>}
  */
 function resolveConfig(options) {
-	if (CONFIG) return CONFIG; // return memoized config
-
 	// Environment Variables take precedence
 	switch (process.env.HARPERDB_NEXTJS_MODE) {
 		case 'dev':
@@ -66,16 +62,26 @@ function resolveConfig(options) {
 	assertType('installCommand', options.installCommand, 'string');
 	assertType('port', options.port, 'number');
 	assertType('prebuilt', options.prebuilt, 'boolean');
+	assertType('subPath', options.subPath, 'string');
 
-	// Memoize config resolution
-	return (CONFIG = {
+	// Remove leading and trailing slashes from subPath
+	if (options.subPath?.[0] === '/') {
+		options.subPath = options.subPath.slice(1);
+	}
+	if (options.subPath?.[options.subPath?.length - 1] === '/') {
+		options.subPath = options.subPath.slice(0, -1);
+	}
+
+	return {
 		buildCommand: options.buildCommand ?? 'next build',
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
 		port: options.port ?? 3000,
 		prebuilt: options.prebuilt ?? false,
-	});
+		subPath: options.subPath ?? '',
+		cache: options.cache ?? false,
+	};
 }
 
 class NextJSAppVerificationError extends Error {}
@@ -85,18 +91,18 @@ const nextJSAppCache = {};
 /**
  * This function verifies if the input is a Next.js app through a couple of
  * verification methods. It does not return nor throw anything. It will either
- * silently succeed, or log an error to `logger.fatal` and exit the process
- * with exit code 1.
+ * succeed (and return the path to the Next.js main file), or log an error to
+ * `logger.fatal` and exit the process with exit code 1.
  *
  * Additionally, it memoizes previous verifications.
  *
  * @param {string} componentPath
- * @returns void
+ * @returns {string} The path to the Next.js main file
  */
 function assertNextJSApp(componentPath) {
 	try {
 		if (nextJSAppCache[componentPath]) {
-			return;
+			return nextJSAppCache[componentPath];
 		}
 
 		if (!fs.existsSync(componentPath)) {
@@ -108,7 +114,7 @@ function assertNextJSApp(componentPath) {
 		}
 
 		// Couple options to check if its a Next.js project
-		// 1. Check for Next.js config file (next.config.{js|ts})
+		// 1. Check for Next.js config file (next.config.{js|mjs|ts})
 		//    - This file is not required for a Next.js project
 		// 2. Check package.json for Next.js dependency
 		//    - It could be listed in `dependencies` or `devDependencies` (and maybe even `peerDependencies` or `optionalDependencies`)
@@ -122,32 +128,31 @@ function assertNextJSApp(componentPath) {
 		// Check for Next.js Config
 		const configExists =
 			fs.existsSync(path.join(componentPath, 'next.config.js')) ||
+			fs.existsSync(path.join(componentPath, 'next.config.mjs')) ||
 			fs.existsSync(path.join(componentPath, 'next.config.ts'));
 
 		// Check for dependency
-		let dependencyExists = false;
-		let packageJSONPath = path.join(componentPath, 'package.json');
+		let nextjsPath;
+		const packageJSONPath = path.join(componentPath, 'package.json');
 		if (fs.existsSync(packageJSONPath)) {
 			let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
 			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
-				let nextJSVersion = packageJSON[dependencyList]?.['next'];
-				if (nextJSVersion) {
-					if (!semver.satisfies(semver.minVersion(nextJSVersion), '>=14.0.0')) {
-						throw new NextJSAppVerificationError(`Next.js version must be >=14.0.0. Found ${nextJSVersion}`);
-					}
-					dependencyExists = true;
-					break;
+				if (packageJSON[dependencyList]?.['next']) {
+					const require = createRequire(componentPath);
+					return require.resolve('next');
 				}
 			}
 		}
 
-		if (!configExists && !dependencyExists) {
+		if (!configExists && !nextjsPath) {
 			throw new NextJSAppVerificationError(
 				`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`
 			);
 		}
 
-		nextJSAppCache[componentPath] = true;
+		nextJSAppCache[componentPath] = nextjsPath;
+
+		return nextjsPath;
 	} catch (error) {
 		if (error instanceof NextJSAppVerificationError) {
 			logger.fatal(`Component path is not a Next.js application: `, error.message);
@@ -155,7 +160,7 @@ function assertNextJSApp(componentPath) {
 			logger.fatal(`Unexpected Error thrown during Next.js Verification: `, error);
 		}
 
-		process.exit(1);
+		throw error;
 	}
 }
 
@@ -167,16 +172,28 @@ function assertNextJSApp(componentPath) {
  * @param {string} componentPath The path to the application component
  * @param {boolean=} debug Print debugging information. Defaults to false
  */
-async function executeCommand(commandInput, componentPath) {
-	const [command, ...args] = shellQuote.parse(commandInput);
-	const cp = child_process.spawn(command, args, {
-		cwd: componentPath,
-		stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
+function executeCommand(commandInput, componentPath) {
+	return new Promise((resolve, reject) => {
+		const [command, ...args] = shellQuote.parse(commandInput);
+
+		const cp = child_process.spawn(command, args, {
+			cwd: componentPath,
+			env: { ...process.env, PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin` },
+			stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
+		});
+
+		cp.on('error', (error) => {
+			if (error.code === 'ENOENT') {
+				logger.fatal(`Command: \`${commandInput}\` not found. Make sure it is included in PATH.`);
+			}
+			reject(error);
+		});
+
+		cp.on('exit', (exitCode) => {
+			logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
+			resolve(exitCode);
+		});
 	});
-
-	const [exitCode] = await events.once(cp, 'exit');
-
-	logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
 }
 
 /**
@@ -200,8 +217,13 @@ export function startOnMainThread(options = {}) {
 			logger.info(`Next.js Extension is setting up ${componentPath}`);
 
 			assertNextJSApp(componentPath);
+			try {
+				createRequire(componentPath)('./next.config.js');
+			} catch (error) {
+				logger.error('Failed to load next.config.js', error);
+			}
 
-			if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
+			if (!config.prebuilt && !fs.existsSync(path.join(componentPath, 'node_modules'))) {
 				await executeCommand(config.installCommand, componentPath);
 			}
 
@@ -234,9 +256,9 @@ export function start(options = {}) {
 		async handleDirectory(_, componentPath) {
 			logger.info(`Next.js Extension is creating Next.js Request Handlers for ${componentPath}`);
 
-			assertNextJSApp(componentPath);
+			const nextJSMainPath = assertNextJSApp(componentPath);
 
-			const next = (await import(path.join(componentPath, 'node_modules/next/dist/server/next.js'))).default;
+			const next = (await import(nextJSMainPath)).default;
 
 			const app = next({ dir: componentPath, dev: config.dev });
 
@@ -245,8 +267,46 @@ export function start(options = {}) {
 			const requestHandler = app.getRequestHandler();
 
 			const servers = options.server.http(
-				(request) => {
-					return requestHandler(request._nodeRequest, request._nodeResponse, url.parse(request._nodeRequest.url, true));
+				async (request, nextHandler) => {
+					if (config.subPath && !request._nodeRequest.url.startsWith(`/${config.subPath}/`)) {
+						return nextHandler(request);
+					}
+					const handler = (nodeResponse) => {
+						// define a handler that will call the Next.js app, that can pass through to the cache resolver function
+						let nodeRequest = request._nodeRequest;
+						nodeRequest.url = config.subPath
+							? nodeRequest.url.replace(new RegExp(`^\/${config.subPath}\/`), '/')
+							: nodeRequest.url;
+						return requestHandler(nodeRequest, nodeResponse, url.parse(nodeRequest.url, true));
+					};
+					if (config.cache && request.method === 'POST' && request.url === '/invalidate') {
+						// invalidate the cache
+						let last;
+						for await (let entry of NextCache.search([], { onlyIfCached: true, noCacheStore: true })) {
+							last = NextCache.delete(entry.id);
+						}
+						await last;
+						return { status: 200, headers: {}, body: 'Cache invalidated' };
+					}
+					// check if the request is cacheable
+					if (request.method === 'GET' && config.cache) {
+						request.handler = handler;
+						// use our cache table
+						let response = await NextCache.get(request.url, request);
+						// if have cache miss, we let the handler actually directly write to the node response object
+						// and stream the results to the client, so we don't need to return anything here
+						if (!request._nodeResponse.writableEnded) {
+							// but if we have a cache hit, we can return the cached response
+							return {
+								status: 200,
+								headers: { ...response.headers.toJSON(), 'X-HarperDB-Cache': 'HIT' },
+								body: response.content,
+							};
+						}
+					} else {
+						// else we just let the handler write to the node response object
+						return handler(request._nodeResponse);
+					}
 				},
 				{ port: config.port }
 			);
@@ -264,3 +324,50 @@ export function start(options = {}) {
 		},
 	};
 }
+
+/**
+ * Source the Next.js cache from request resolution using the passed in Next.js request handler,
+ * and intercepting the response to cache it.
+ */
+NextCache.sourcedFrom({
+	async get(path, context) {
+		const request = context.requestContext;
+		return new Promise((resolve, reject) => {
+			const nodeResponse = request._nodeResponse;
+			if (!nodeResponse) return;
+			let cacheable;
+			// intercept the main methods to get and cache the response
+			const writeHead = nodeResponse.writeHead;
+			nodeResponse.writeHead = (status, message, headers) => {
+				nodeResponse.setHeader('X-HarperDB-Cache', 'MISS');
+				if (status === 200) cacheable = true;
+				writeHead.call(nodeResponse, status, message, headers);
+			};
+			const blocks = []; // collect the blocks of response data to cache
+			const write = nodeResponse.write;
+			nodeResponse.write = (block) => {
+				if (typeof block === 'string') block = Buffer.from(block);
+				blocks.push(block);
+				write.call(nodeResponse, block);
+			};
+			const end = nodeResponse.end;
+			nodeResponse.end = (block) => {
+				// now we have the full response, cache it
+				if (block) {
+					if (typeof block === 'string') block = Buffer.from(block);
+					blocks.push(block);
+				}
+				end.call(nodeResponse, block);
+				if (!cacheable) context.noCacheStore = true;
+				// cache the response, with the headers and content
+				resolve({
+					id: path,
+					headers: nodeResponse._headers,
+					content: blocks.length > 1 ? Buffer.concat(blocks) : blocks[0],
+				});
+			};
+
+			request.handler(nodeResponse);
+		});
+	},
+});

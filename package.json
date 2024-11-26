@@ -29,7 +29,8 @@
 	"files": [
 		"config.yaml",
 		"extension.js",
-		"cli.js"
+		"cli.js",
+		"schema.graphql"
 	],
 	"scripts": {
 		"format": "prettier --write ."

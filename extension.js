@@ -160,7 +160,7 @@ function assertNextJSApp(componentPath) {
 			logger.fatal(`Unexpected Error thrown during Next.js Verification: `, error);
 		}
 
-		process.exit(1);
+		throw error;
 	}
 }
 

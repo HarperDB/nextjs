@@ -1,5 +1,4 @@
 import { suite, test, before, after } from 'node:test';
-import { once } from 'node:events';
 import { Fixture } from './util.js';
 
 suite('Next.js v15 - Node.js v18', async () => {
@@ -7,7 +6,7 @@ suite('Next.js v15 - Node.js v18', async () => {
 
 	before(async () => {
 		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18' });
-		await once(ctx.fixture, 'ready');
+		await ctx.fixture.ready;
 		ctx.rest = `http://${ctx.fixture.portMap.get('9926')}`;
 	});
 
@@ -23,7 +22,7 @@ suite('Next.js v15 - Node.js v18', async () => {
 		t.assert.deepStrictEqual(json, { id: '0', name: 'Lincoln', breed: 'Shepherd' });
 	});
 
-	after(() => {
-		ctx.fixture.cleanup();
+	after(async () => {
+		await ctx.fixture.clear();
 	});
 });

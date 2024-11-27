@@ -68,70 +68,51 @@ export class Fixture {
 		return ['ignore', this.debug ? 'inherit' : 'ignore', this.debug ? 'inherit' : 'ignore'];
 	}
 
-	build() {
+	#runCommand(args = [], options = {}) {
 		return new Promise((resolve, reject) => {
-			const buildProcess = child_process.spawn(
-				this.containerEngine,
-				[
-					'build',
-					'--build-arg',
-					`NEXT_MAJOR=${this.nextMajor}`,
-					'--build-arg',
-					`NODE_MAJOR=${this.nodeMajor}`,
-					'-t',
-					this.imageName,
-					'.',
-				],
-				{
-					cwd: Fixture.FIXTURE_PATH_URL,
-					stdio: this.#stdio,
-				}
-			);
+			const childProcess = child_process.spawn(this.containerEngine, args, {
+				stdio: this.#stdio,
+				...options,
+			});
 
-			buildProcess.on('error', reject);
+			childProcess.on('error', reject);
 
-			buildProcess.on('exit', (code) => {
+			childProcess.on('exit', (code) => {
 				if (code === 0) {
 					resolve();
 				} else {
-					reject(new Error(`\`${this.containerEngine} build\` exited with code ${code}`));
+					reject(
+						new Error(`\`${this.containerEngine}${args.length > 0 ? ` ${args[1]}` : ''}\` exited with code ${code}`)
+					);
 				}
 			});
 		});
+	}
+
+	build() {
+		return this.#runCommand(
+			[
+				'build',
+				'--build-arg',
+				`NEXT_MAJOR=${this.nextMajor}`,
+				'--build-arg',
+				`NODE_MAJOR=${this.nodeMajor}`,
+				'-t',
+				this.imageName,
+				'.',
+			],
+			{
+				cwd: Fixture.FIXTURE_PATH_URL,
+			}
+		);
 	}
 
 	stop() {
-		return new Promise((resolve, reject) => {
-			const stopProcess = child_process.spawn(this.containerEngine, ['stop', this.containerName], {
-				stdio: this.#stdio,
-			});
-
-			stopProcess.on('error', reject);
-
-			stopProcess.on('exit', (code) => {
-				if (code === 0) {
-					resolve();
-				} else {
-					reject(new Error(`\`${this.containerEngine} stop\` exited with code ${code}`));
-				}
-			});
-		});
+		return this.#runCommand(['stop', this.containerName]);
 	}
 
 	rm() {
-		return new Promise((resolve, reject) => {
-			const rmProcess = child_process.spawn(this.containerEngine, ['rm', this.containerName], { stdio: this.#stdio });
-
-			rmProcess.on('error', reject);
-
-			rmProcess.on('exit', (code) => {
-				if (code === 0) {
-					resolve();
-				} else {
-					reject(new Error(`\`${this.containerEngine} rm\` exited with code ${code}`));
-				}
-			});
-		});
+		return this.#runCommand(['rm', this.containerName]);
 	}
 
 	clear() {

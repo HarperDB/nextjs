@@ -126,33 +126,29 @@ function assertNextJSApp(componentPath) {
 		// Edge case: app does not have a config and are using `npx` (or something similar) to execute Next.js
 
 		// Check for Next.js Config
-		const configExists =
-			fs.existsSync(path.join(componentPath, 'next.config.js')) ||
-			fs.existsSync(path.join(componentPath, 'next.config.mjs')) ||
-			fs.existsSync(path.join(componentPath, 'next.config.ts'));
+		const configExists = ['js', 'mjs', 'ts'].some((ext) => fs.existsSync(path.join(componentPath, `next.config.${ext}`)));
 
 		// Check for dependency
-		let nextjsPath;
+		let nextJSExists;
 		const packageJSONPath = path.join(componentPath, 'package.json');
 		if (fs.existsSync(packageJSONPath)) {
-			let packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
+			const packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
 			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
 				if (packageJSON[dependencyList]?.['next']) {
-					const require = createRequire(componentPath);
-					return require.resolve('next');
+					nextJSExists = true;
 				}
 			}
 		}
 
-		if (!configExists && !nextjsPath) {
+		if (!configExists && !nextJSExists) {
 			throw new NextJSAppVerificationError(
 				`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`
 			);
 		}
 
-		nextJSAppCache[componentPath] = nextjsPath;
+		nextJSAppCache[componentPath] = nextJSExists;
 
-		return nextjsPath;
+		return nextJSExists;
 	} catch (error) {
 		if (error instanceof NextJSAppVerificationError) {
 			logger.fatal(`Component path is not a Next.js application: `, error.message);
@@ -196,6 +192,14 @@ function executeCommand(commandInput, componentPath) {
 	});
 }
 
+function resolveNext(componentRequire) {
+	try {
+		return componentRequire.resolve('next');
+	} catch (error) {
+		return false;
+	}
+}
+
 /**
  * This method is executed once, on the main thread, and is responsible for
  * returning a Resource Extension that will subsequently be executed once,
@@ -217,14 +221,28 @@ export function startOnMainThread(options = {}) {
 			logger.info(`Next.js Extension is setting up ${componentPath}`);
 
 			assertNextJSApp(componentPath);
+
+			const componentRequire = createRequire(componentPath);
+
+			// TODO: support .ts and .mjs configs
+			// TODO: document what this require is implicitly doing (i.e. loads config file so cache is instantiated?)
 			try {
-				createRequire(componentPath)('./next.config.js');
+				componentRequire('./next.config.js');
 			} catch (error) {
 				logger.error('Failed to load next.config.js', error);
 			}
 
-			if (!config.prebuilt && !fs.existsSync(path.join(componentPath, 'node_modules'))) {
-				await executeCommand(config.installCommand, componentPath);
+			try {
+				resolveNext(componentRequire);
+			} catch (error) {
+				if (!config.prebuilt) {
+					await executeCommand(config.installCommand, componentPath);
+					try {
+						resolveNext(componentRequire);
+					} catch (error) {
+						logger.error('Next.js not found after installing dependencies');
+					}
+				}
 			}
 
 			if (!config.prebuilt && !config.dev) {
@@ -256,9 +274,9 @@ export function start(options = {}) {
 		async handleDirectory(_, componentPath) {
 			logger.info(`Next.js Extension is creating Next.js Request Handlers for ${componentPath}`);
 
-			const nextJSMainPath = assertNextJSApp(componentPath);
+			assertNextJSApp(componentPath);
 
-			const next = (await import(nextJSMainPath)).default;
+			const next = (await import(createRequire(componentPath).resolve('next'))).default;
 
 			const app = next({ dir: componentPath, dev: config.dev });
 

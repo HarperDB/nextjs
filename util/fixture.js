@@ -14,7 +14,7 @@ export class Fixture {
 		this.nextMajor = nextMajor;
 		this.nodeMajor = nodeMajor;
 
-		this.debug = debug;
+		this.debug = debug || process.env.DEBUG === '1';
 
 		this.imageName = `hdb-next-integration-test-image-next-${nextMajor}-node-${nodeMajor}`;
 		this.containerName = `hdb-next-integration-test-container-next-${nextMajor}-node-${nodeMajor}`;

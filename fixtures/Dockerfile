@@ -17,8 +17,6 @@ ENV ROOTPATH=/hdb
 ENV OPERATIONSAPI_NETWORK_PORT=9925
 ENV HTTP_PORT=9926
 
-# TODO Setup HarperDB to rootpath /hdb/
-
 COPY harperdb-base-component /hdb/components/harperdb-base-component
 
 ARG NODE_MAJOR
@@ -29,7 +27,6 @@ ARG NEXT_MAJOR
 
 COPY next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
 
-EXPOSE 9925
-EXPOSE 9926
+EXPOSE 9925 9926
 
 CMD ["harperdb", "run"]

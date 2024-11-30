@@ -1,34 +1,16 @@
 import child_process from 'node:child_process';
-import EventEmitter, { once } from 'node:events';
+import path from 'node:path';
 import { Transform } from 'node:stream';
-
-class CollectOutput extends Transform {
-	constructor() {
-		super();
-		this.chunks = [];
-	}
-
-	_transform(chunk, encoding, callback) {
-		this.chunks.push(chunk);
-		callback(null, chunk);
-	}
-}
+import { fileURLToPath } from 'node:url';
 
 export class Fixture {
 	static CONTAINER_ENGINE_LIST = ['podman', 'docker'];
-	static FIXTURE_PATH_URL = new URL('./fixtures/', import.meta.url);
+	static FIXTURE_PATH = fileURLToPath(new URL('../fixtures/', import.meta.url));
 
 	/** @type {string} */
 	#containerEngine;
 
-	#readyResolve;
-	#readyReject;
-
-	constructor({ nextMajor, nodeMajor, debug = false, autoSetup = true }) {
-		if (!nextMajor || !nodeMajor) {
-			throw new Error(`Fixture options nextMajor and nodeMajor are required`);
-		}
-
+	constructor({ autoSetup = true, debug = false, nextMajor, nodeMajor }) {
 		this.nextMajor = nextMajor;
 		this.nodeMajor = nodeMajor;
 
@@ -38,14 +20,9 @@ export class Fixture {
 		this.containerName = `hdb-next-integration-test-container-next-${nextMajor}-node-${nodeMajor}`;
 
 		if (autoSetup) {
-			this.ready = new Promise((resolve, reject) => {
-				this.#readyResolve = resolve;
-				this.#readyReject = reject;
-			});
-			this.clear()
+			this.ready = this.clear()
 				.then(() => this.build())
-				.then(() => this.run())
-				.then(this.#readyResolve, this.#readyReject);
+				.then(() => this.run());
 		}
 	}
 
@@ -75,36 +52,29 @@ export class Fixture {
 				...options,
 			});
 
-			childProcess.on('error', reject);
+			childProcess.on('error', (error) => {
+				reject(error);
+			});
 
 			childProcess.on('exit', (code) => {
-				if (code === 0) {
-					resolve();
-				} else {
-					reject(
-						new Error(`\`${this.containerEngine}${args.length > 0 ? ` ${args[1]}` : ''}\` exited with code ${code}`)
-					);
-				}
+				resolve(code);
 			});
 		});
 	}
 
 	build() {
-		return this.#runCommand(
-			[
-				'build',
-				'--build-arg',
-				`NEXT_MAJOR=${this.nextMajor}`,
-				'--build-arg',
-				`NODE_MAJOR=${this.nodeMajor}`,
-				'-t',
-				this.imageName,
-				'.',
-			],
-			{
-				cwd: Fixture.FIXTURE_PATH_URL,
-			}
-		);
+		return this.#runCommand([
+			'build',
+			'--build-arg',
+			`NEXT_MAJOR=${this.nextMajor}`,
+			'--build-arg',
+			`NODE_MAJOR=${this.nodeMajor}`,
+			'-t',
+			this.imageName,
+			'-f',
+			path.join(Fixture.FIXTURE_PATH, 'Dockerfile'),
+			Fixture.FIXTURE_PATH,
+		]);
 	}
 
 	stop() {
@@ -121,7 +91,18 @@ export class Fixture {
 
 			psProcess.on('error', reject);
 
-			const collectedStdout = psProcess.stdout.pipe(new CollectOutput());
+			const collectedStdout = psProcess.stdout.pipe(
+				new Transform({
+					construct(cb) {
+						this.chunks = [];
+						cb(null);
+					},
+					transform(chunk, encoding, callback) {
+						this.chunks.push(chunk);
+						callback(null, chunk);
+					},
+				})
+			);
 
 			if (this.debug) {
 				collectedStdout.pipe(process.stdout);
@@ -150,12 +131,12 @@ export class Fixture {
 				['run', '-P', '--name', this.containerName, this.imageName],
 				{ stdio: ['ignore', 'pipe', this.debug ? 'inherit' : 'ignore'] }
 			);
-			const resolveReady = this.#readyResolve;
+
 			const stdout = runProcess.stdout.pipe(
 				new Transform({
 					transform(chunk, encoding, callback) {
 						if (chunk.toString().includes('HarperDB 4.4.5 successfully started')) {
-							resolveReady();
+							resolve();
 						}
 						callback(null, chunk);
 					},
@@ -167,14 +148,7 @@ export class Fixture {
 			}
 
 			runProcess.on('error', reject);
-
-			runProcess.on('exit', (code) => {
-				if (code === 0) {
-					resolve();
-				} else {
-					reject(new Error(`\`${this.containerEngine} run\` exited with code ${code}`));
-				}
-			});
+			runProcess.on('exit', resolve);
 		});
 	}
 

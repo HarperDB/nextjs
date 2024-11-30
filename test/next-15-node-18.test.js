@@ -1,5 +1,6 @@
 import { suite, test, before, after } from 'node:test';
-import { Fixture } from './util.js';
+
+import { Fixture } from '../util/fixture.js';
 
 suite('Next.js v15 - Node.js v18', async () => {
 	const ctx = {};

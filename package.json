@@ -33,8 +33,10 @@
 		"schema.graphql"
 	],
 	"scripts": {
-		"format": "prettier --write .",
-		"test": "node --test \"test/**/*.test.js\""
+		"format": "prettier .",
+		"format:check": "npm run format -- --check",
+		"format:write": "npm run format -- --write",
+		"test": "node --test"
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"

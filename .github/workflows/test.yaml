@@ -7,20 +7,23 @@ on:
     branches: [main]
 
 jobs:
-  # Skip for now
-  if: ${{ false }}
   test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        next-version: [9, 10, 11, 12, 13, 14, 15]
-        node-version: [16, 18, 20, 22]
-        # exclude:
-        # - next-version: 9
-        # node-version: 18
-
     steps:
       - uses: actions/checkout@v4
-      # TODO: invoke the integration container
-      # TODO: find interoperability with the scripts/run-integration-tests.js
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check formatting
+        continue-on-error: true
+        run: npm run format:check
+      
+      - name: Run tests
+        run: npm run test

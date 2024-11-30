@@ -135,7 +135,7 @@ export class Fixture {
 			const stdout = runProcess.stdout.pipe(
 				new Transform({
 					transform(chunk, encoding, callback) {
-						if (chunk.toString().includes('HarperDB 4.4.5 successfully started')) {
+						if (/HarperDB \d+.\d+.\d+ successfully started/.test(chunk.toString())) {
 							resolve();
 						}
 						callback(null, chunk);

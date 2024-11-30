@@ -21,7 +21,7 @@ COPY harperdb-base-component /hdb/components/harperdb-base-component
 
 ARG NODE_MAJOR
 
-FROM localhost:node-base-${NODE_MAJOR}
+FROM node-base-${NODE_MAJOR}
 
 ARG NEXT_MAJOR
 

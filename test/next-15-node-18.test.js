@@ -6,8 +6,10 @@ suite('Next.js v15 - Node.js v18', async () => {
 	const ctx = {};
 
 	before(async () => {
-		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18' });
+		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18',debug: true });
 		await ctx.fixture.ready;
+		console.log(ctx.fixture.portMap);
+
 		ctx.rest = `http://${ctx.fixture.portMap.get('9926')}`;
 	});
 
@@ -22,6 +24,17 @@ suite('Next.js v15 - Node.js v18', async () => {
 
 		t.assert.deepStrictEqual(json, { id: '0', name: 'Lincoln', breed: 'Shepherd' });
 	});
+
+	await test('should reach home page', async (t) => {
+		const response = await fetch(`${ctx.rest}/`, {
+			headers: {
+				'Content-Type': 'text/html',
+			}
+		});
+
+		const text = await response.text();
+		t.assert.match(text, /Next\.js v15/);
+	})
 
 	after(async () => {
 		await ctx.fixture.clear();

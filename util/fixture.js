@@ -73,7 +73,7 @@ export class Fixture {
 			this.imageName,
 			'-f',
 			path.join(Fixture.FIXTURE_PATH, 'Dockerfile'),
-			Fixture.FIXTURE_PATH,
+			path.join(Fixture.FIXTURE_PATH, '..'),
 		]);
 	}
 

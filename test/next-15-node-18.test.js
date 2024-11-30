@@ -6,10 +6,8 @@ suite('Next.js v15 - Node.js v18', async () => {
 	const ctx = {};
 
 	before(async () => {
-		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18',debug: true });
+		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18' });
 		await ctx.fixture.ready;
-		console.log(ctx.fixture.portMap);
-
 		ctx.rest = `http://${ctx.fixture.portMap.get('9926')}`;
 	});
 
@@ -34,7 +32,7 @@ suite('Next.js v15 - Node.js v18', async () => {
 
 		const text = await response.text();
 		t.assert.match(text, /Next\.js v15/);
-	})
+	});
 
 	after(async () => {
 		await ctx.fixture.clear();

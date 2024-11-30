@@ -1,3 +1,7 @@
+# This Dockerfile must be built from the root of the repository
+# i.e. docker build ... -f fixtures/Dockerfile .
+# Review the README.md for more information
+
 ARG NODE_MAJOR
 
 FROM node:${NODE_MAJOR} as node-base-${NODE_MAJOR}
@@ -5,6 +9,10 @@ FROM node:${NODE_MAJOR} as node-base-${NODE_MAJOR}
 RUN apt-get update && apt-get install -y \
 	curl \
 	&& rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /harperdb-nextjs
+COPY --exclude=.github --exclude=fixtures --exclude=test --exclude=util \
+	. /harperdb-nextjs/
 
 RUN npm install -g harperdb
 
@@ -17,7 +25,7 @@ ENV ROOTPATH=/hdb
 ENV OPERATIONSAPI_NETWORK_PORT=9925
 ENV HTTP_PORT=9926
 
-COPY harperdb-base-component /hdb/components/harperdb-base-component
+COPY fixtures/harperdb-base-component /hdb/components/harperdb-base-component
 
 ARG NODE_MAJOR
 
@@ -25,7 +33,9 @@ FROM node-base-${NODE_MAJOR}
 
 ARG NEXT_MAJOR
 
-COPY next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
+COPY fixtures/next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
+
+RUN npm install -C hdb/components/next-${NEXT_MAJOR}
 
 EXPOSE 9925 9926
 

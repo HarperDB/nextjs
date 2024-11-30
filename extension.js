@@ -126,7 +126,9 @@ function assertNextJSApp(componentPath) {
 		// Edge case: app does not have a config and are using `npx` (or something similar) to execute Next.js
 
 		// Check for Next.js Config
-		const configExists = ['js', 'mjs', 'ts'].some((ext) => fs.existsSync(path.join(componentPath, `next.config.${ext}`)));
+		const configExists = ['js', 'mjs', 'ts'].some((ext) =>
+			fs.existsSync(path.join(componentPath, `next.config.${ext}`))
+		);
 
 		// Check for dependency
 		let nextJSExists;
@@ -192,14 +194,6 @@ function executeCommand(commandInput, componentPath) {
 	});
 }
 
-function resolveNext(componentRequire) {
-	try {
-		return componentRequire.resolve('next');
-	} catch (error) {
-		return false;
-	}
-}
-
 /**
  * This method is executed once, on the main thread, and is responsible for
  * returning a Resource Extension that will subsequently be executed once,
@@ -233,13 +227,15 @@ export function startOnMainThread(options = {}) {
 			}
 
 			try {
-				resolveNext(componentRequire);
+				componentRequire.resolve('next');
 			} catch (error) {
+				logger.error(error);
 				if (!config.prebuilt) {
 					await executeCommand(config.installCommand, componentPath);
 					try {
-						resolveNext(componentRequire);
+						componentRequire.resolve('next');
 					} catch (error) {
+						logger.error(error);
 						logger.error('Next.js not found after installing dependencies');
 					}
 				}
@@ -276,7 +272,9 @@ export function start(options = {}) {
 
 			assertNextJSApp(componentPath);
 
-			const next = (await import(createRequire(componentPath).resolve('next'))).default;
+			const componentRequire = createRequire(componentPath);
+
+			const next = (await import(componentRequire.resolve('next'))).default;
 
 			const app = next({ dir: componentPath, dev: config.dev });
 

@@ -36,7 +36,7 @@
 		"format": "prettier .",
 		"format:check": "npm run format -- --check",
 		"format:write": "npm run format -- --write",
-		"test": "DEBUG=1 node --test"
+		"test": "node --test"
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"

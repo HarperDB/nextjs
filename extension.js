@@ -73,7 +73,7 @@ function resolveConfig(options) {
 	}
 
 	return {
-		buildCommand: options.buildCommand ?? 'next build',
+		buildCommand: options.buildCommand ?? 'npx next build',
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',

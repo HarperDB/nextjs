@@ -9,22 +9,36 @@ RUN apt-get update && apt-get install -y \
 	curl \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /@harperdb/nextjs
-
-COPY --exclude=.github --exclude=fixtures --exclude=test --exclude=util --exclude=node_modules --exclude=.node-version --exclude=.git \
-	. /@harperdb/nextjs
-
-RUN npm install -C /@harperdb/nextjs
-
+# Install HarperDB Globally
 RUN npm install -g harperdb
 
-RUN mkdir -p /hdb/components
-
+# Set HarperDB Environment Variables
 ENV TC_AGREEMENT=yes
 ENV HDB_ADMIN_USERNAME=hdb_admin
 ENV HDB_ADMIN_PASSWORD=password
 ENV ROOTPATH=/hdb
 ENV OPERATIONSAPI_NETWORK_PORT=9925
 ENV HTTP_PORT=9926
+ENV THREADS_COUNT=1
+ENV LOG_TO_STDSTREAMS=true
+ENV LOG_TO_FILE=true
 
+# Create components directory
+RUN mkdir -p /hdb/components
+
+# Add base component
 COPY /fixtures/harperdb-base-component /hdb/components/harperdb-base-component
+
+# Create the @harperdb/nextjs module directory so it can be linked locally
+RUN mkdir -p /@harperdb/nextjs
+
+# Cache Bust copying project files
+ARG CACHE_BUST
+RUN echo "${CACHE_BUST}"
+COPY config.yaml extension.js cli.js schema.graphql package.json /@harperdb/nextjs/
+
+# Install dependencies for the @harperdb/nextjs module
+RUN npm install -C /@harperdb/nextjs
+
+# Create link to the @harperdb/nextjs module
+RUN npm link -C /@harperdb/nextjs

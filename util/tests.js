@@ -1,6 +1,6 @@
 export const base = [
 	{
-		name: "should enable /Dog rest endpoint",
+		name: 'should enable /Dog rest endpoint',
 		testFunction: async (t, ctx) => {
 			const response = await fetch(`${ctx.rest}/Dog/0`, {
 				headers: {
@@ -9,11 +9,11 @@ export const base = [
 				},
 			});
 			const json = await response.json();
-	
+
 			t.assert.deepStrictEqual(json, { id: '0', name: 'Lincoln', breed: 'Shepherd' });
-		}
-	}
-]
+		},
+	},
+];
 
 export const next15 = [
 	{
@@ -22,11 +22,11 @@ export const next15 = [
 			const response = await fetch(`${ctx.rest}/`, {
 				headers: {
 					'Content-Type': 'text/html',
-				}
+				},
 			});
-	
+
 			const text = await response.text();
 			t.assert.match(text, /Next\.js v15/);
-		}
-	}
+		},
+	},
 ];

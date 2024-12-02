@@ -1,6 +1,5 @@
 import { spawnSync } from 'child_process';
 
-
 const CONTAINER_ENGINE_LIST = ['podman', 'docker'];
 
 export function getContainerEngine() {
@@ -10,7 +9,7 @@ export function getContainerEngine() {
 			return engine;
 		}
 	}
-	
+
 	throw new Error(`No container engine found in ${CONTAINER_ENGINE_LIST.join(', ')}`);
 }
 

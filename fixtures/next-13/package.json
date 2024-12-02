@@ -8,8 +8,7 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
-		"@harperdb/nextjs": "file:/harperdb-nextjs",
+		"@harperdb/nextjs": "file:/@harperdb/nextjs",
 		"next": "13.5.7"
 	}
-  }
-  
+}

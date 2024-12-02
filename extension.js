@@ -208,7 +208,6 @@ function executeCommand(commandInput, componentPath) {
  * @returns
  */
 export function startOnMainThread(options = {}) {
-
 	const config = resolveConfig(options);
 
 	logger.debug('Next.js Extension Configuration:', JSON.stringify(config, undefined, 2));

@@ -35,8 +35,8 @@
 	"scripts": {
 		"format": "prettier .",
 		"format:check": "npm run format -- --check",
-		"format:write": "npm run format -- --write",
-		"pretest": "node scripts/pretest.js",
+		"format:fix": "npm run format -- --write",
+		"pretest": "node util/pretest.js",
 		"test": "node --test"
 	},
 	"dependencies": {

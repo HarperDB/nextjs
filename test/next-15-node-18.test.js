@@ -8,10 +8,17 @@ suite('Next.js v15 - Node.js v18', async () => {
 	before(async () => {
 		ctx.fixture = new Fixture({ nextMajor: '15', nodeMajor: '18' });
 		await ctx.fixture.ready;
-		ctx.rest = new URL(`http://${ctx.fixture.portMap.get('9926')}`);
+
+		const restPort = ctx.fixture.portMap.get('9926');
+
+		if (!restPort) {
+			throw new Error('Rest port not found');
+		}
+
+		ctx.rest = new URL(`http://${restPort}`);
 	});
 
-	await Promise.all(base.concat(next15).map(async ({ name, testFunction }) => test(name, t => testFunction(t, ctx))));
+	await Promise.all(base.concat(next15).map(async ({ name, testFunction }) => test(name, (t) => testFunction(t, ctx))));
 
 	after(async () => {
 		await ctx.fixture.clear();

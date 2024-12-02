@@ -1,3 +1,6 @@
+# Base Dockerfile for HarperDB Next.js Integration Tests fixtures
+# Must be run from the root of the repository
+
 ARG NODE_MAJOR
 
 FROM node:${NODE_MAJOR}

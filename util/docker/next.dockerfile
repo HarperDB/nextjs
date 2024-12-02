@@ -7,9 +7,11 @@ FROM ${BASE_IMAGE}
 
 ARG NEXT_MAJOR
 
-COPY fixtures/next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
+ARG CACHE_BUST
+RUN echo "${CACHE_BUST}"
+COPY --exclude=node_modules --exclude=.next fixtures/next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
 
-RUN npm install -C hdb/components/next-${NEXT_MAJOR}
+RUN cd hdb/components/next-${NEXT_MAJOR} && npm install
 
 EXPOSE 9925 9926
 

@@ -1,16 +1,12 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
-import { containerEngine } from './get-container-engine.js';
-import { getNextImageName } from './get-next-image-name.js';
-import { CollectedTransform } from './collected-transform.js';
-import { CACHE_BUST } from './cache-bust.js';
+
+import { CONTAINER_ENGINE } from '../container-engine.js';
+import { CollectedTransform } from '../collected-transform.js';
+import { MODULE_CACHE_BUST, getNextFixtureCacheBustValue } from '../cache-bust.js';
+import { NODE_MAJORS, NEXT_MAJORS, ROOT, getNodeBaseImageName, getNextImageName } from '../constants-and-names.js';
 
 const DEBUG = process.env.DEBUG === '1';
-
-const NODE_MAJORS = ['18', '20', '22'];
-const NEXT_MAJORS = ['13', '14', '15'];
-
-const getNodeBaseImageName = (nodeMajor) => `harperdb-nextjs/node-base-${nodeMajor}`;
 
 function validateResult(result) {
 	const success = result.code === 0;
@@ -28,12 +24,12 @@ function validateResult(result) {
 
 function build(name, args, options = {}) {
 	return new Promise((resolve, reject) => {
-		const buildProcess = spawn(containerEngine, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
+		const buildProcess = spawn(CONTAINER_ENGINE, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], ...options });
 
 		const collectedStdout = buildProcess.stdout.pipe(new CollectedTransform());
 		const collectedStderr = buildProcess.stderr.pipe(new CollectedTransform());
 
-		buildProcess.on('error', (error) => reject(error));
+		buildProcess.on('error', reject);
 		buildProcess.on('close', (code) =>
 			resolve({
 				name,
@@ -45,19 +41,19 @@ function build(name, args, options = {}) {
 	});
 }
 
-// Build Node Base Images
+// Build Node.js Base Images
 for (const nodeMajor of NODE_MAJORS) {
 	const buildResult = await build(getNodeBaseImageName(nodeMajor), [
 		'build',
 		'--build-arg',
 		`NODE_MAJOR=${nodeMajor}`,
 		'--build-arg',
-		`CACHE_BUST=${CACHE_BUST}`,
+		`CACHE_BUST=${MODULE_CACHE_BUST}`,
 		'-t',
 		getNodeBaseImageName(nodeMajor),
 		'-f',
-		join(import.meta.dirname, 'base.dockerfile'),
-		join(import.meta.dirname, '..'),
+		join(ROOT, 'util', 'docker', 'base.dockerfile'),
+		ROOT,
 	]);
 
 	validateResult(buildResult);
@@ -73,11 +69,13 @@ for (const nextMajor of NEXT_MAJORS) {
 			`BASE_IMAGE=${getNodeBaseImageName(nodeMajor)}`,
 			'--build-arg',
 			`NEXT_MAJOR=${nextMajor}`,
+			'--build-arg',
+			`CACHE_BUST=${getNextFixtureCacheBustValue(nextMajor)}`,
 			'-t',
 			getNextImageName(nextMajor, nodeMajor),
 			'-f',
-			join(import.meta.dirname, 'next.dockerfile'),
-			join(import.meta.dirname, '..'),
+			join(ROOT, 'util', 'docker', 'next.dockerfile'),
+			ROOT,
 		]);
 
 		validateResult(buildResult);

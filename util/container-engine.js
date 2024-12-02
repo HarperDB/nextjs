@@ -1,6 +1,6 @@
-import { spawnSync } from 'child_process';
+import { spawnSync } from 'node:child_process';
 
-const CONTAINER_ENGINE_LIST = ['podman', 'docker'];
+import { CONTAINER_ENGINE_LIST } from './constants-and-names.js';
 
 export function getContainerEngine() {
 	for (const engine of CONTAINER_ENGINE_LIST) {
@@ -13,4 +13,4 @@ export function getContainerEngine() {
 	throw new Error(`No container engine found in ${CONTAINER_ENGINE_LIST.join(', ')}`);
 }
 
-export const containerEngine = getContainerEngine();
+export const CONTAINER_ENGINE = getContainerEngine();

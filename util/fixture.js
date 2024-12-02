@@ -1,17 +1,26 @@
-import child_process from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { Transform } from 'node:stream';
-import { getNextImageName } from './get-next-image-name.js';
-import { containerEngine } from './get-container-engine.js';
+
+import { getNextImageName, getNextContainerName, NEXT_MAJORS, NODE_MAJORS, PORTS } from './constants-and-names.js';
+import { CONTAINER_ENGINE } from './container-engine.js';
+import { CollectedTransform } from './collected-transform.js';
 
 export class Fixture {
 	constructor({ autoSetup = true, debug = false, nextMajor, nodeMajor }) {
+		if (!NEXT_MAJORS.includes(nextMajor)) {
+			throw new Error(`nextMajor must be one of ${NEXT_MAJORS.join(', ')}`);
+		}
 		this.nextMajor = nextMajor;
+
+		if (!NODE_MAJORS.includes(nodeMajor)) {
+			throw new Error(`nodeMajor must be one of ${NODE_MAJORS.join(', ')}`);
+		}
 		this.nodeMajor = nodeMajor;
 
 		this.debug = debug || process.env.DEBUG === '1';
 
 		this.imageName = getNextImageName(nextMajor, nodeMajor);
-		this.containerName = `hdb-next-integration-test-container-next-${nextMajor}-node-${nodeMajor}`;
+		this.containerName = getNextContainerName(nextMajor, nodeMajor);
 
 		if (autoSetup) {
 			this.ready = this.clear().then(() => this.run());
@@ -24,7 +33,7 @@ export class Fixture {
 
 	#runCommand(args = [], options = {}) {
 		return new Promise((resolve, reject) => {
-			const childProcess = child_process.spawn(containerEngine, args, {
+			const childProcess = spawn(CONTAINER_ENGINE, args, {
 				stdio: this.#stdio,
 				...options,
 			});
@@ -44,22 +53,11 @@ export class Fixture {
 
 	clear() {
 		return new Promise((resolve, reject) => {
-			const psProcess = child_process.spawn(containerEngine, ['ps', '-aq', '-f', `name=${this.containerName}`]);
+			const psProcess = spawn(CONTAINER_ENGINE, ['ps', '-aq', '-f', `name=${this.containerName}`]);
 
 			psProcess.on('error', reject);
 
-			const collectedStdout = psProcess.stdout.pipe(
-				new Transform({
-					construct(callback) {
-						this.chunks = [];
-						callback(null);
-					},
-					transform(chunk, encoding, callback) {
-						this.chunks.push(chunk);
-						callback(null, chunk);
-					},
-				})
-			);
+			const collectedStdout = psProcess.stdout.pipe(new CollectedTransform());
 
 			if (this.debug) {
 				collectedStdout.pipe(process.stdout);
@@ -67,7 +65,7 @@ export class Fixture {
 			}
 
 			psProcess.on('exit', (code) => {
-				if (code === 0 && collectedStdout.chunks.length !== 0) {
+				if (code === 0 && collectedStdout.output !== '') {
 					return this.stop()
 						.then(() => this.rm())
 						.then(resolve, reject);
@@ -79,11 +77,9 @@ export class Fixture {
 
 	run() {
 		return new Promise((resolve, reject) => {
-			const runProcess = child_process.spawn(
-				containerEngine,
-				['run', '-P', '--name', this.containerName, this.imageName],
-				{ stdio: ['ignore', 'pipe', this.debug ? 'inherit' : 'ignore'] }
-			);
+			const runProcess = spawn(CONTAINER_ENGINE, ['run', '-P', '--name', this.containerName, this.imageName], {
+				stdio: ['ignore', 'pipe', this.debug ? 'inherit' : 'ignore'],
+			});
 
 			runProcess.on('error', reject);
 			runProcess.on('exit', resolve);
@@ -107,8 +103,8 @@ export class Fixture {
 
 	get portMap() {
 		const portMap = new Map();
-		for (const port of ['9925', '9926']) {
-			const { stdout } = child_process.spawnSync(containerEngine, ['port', this.containerName, port]);
+		for (const port of PORTS) {
+			const { stdout } = spawnSync(CONTAINER_ENGINE, ['port', this.containerName, port]);
 			portMap.set(port, stdout.toString().trim());
 		}
 		return portMap;

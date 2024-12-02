@@ -13,10 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Podman
-        run: |
-          sudo apt-get install -y podman
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

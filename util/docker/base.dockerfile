@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7-labs
-
 # Base Dockerfile for HarperDB Next.js Integration Tests fixtures
 # Must be run from the root of the repository
 

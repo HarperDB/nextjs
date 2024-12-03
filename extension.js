@@ -15,7 +15,7 @@ const { NextCache } = databases.cache;
  * @property {string=} buildOnly - Build the Next.js app and exit. Defaults to `false`.
  * @property {boolean=} dev - Enable dev mode. Defaults to `false`.
  * @property {string=} installCommand - A custom install command. Defaults to `npm install`.
- * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
+ * @property {number=} port - A port for the Next.js server. Defaults to `9926`.
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
  * @property {string=} subPath - A sub path for serving request from. Defaults to `''`.
  */
@@ -77,7 +77,7 @@ function resolveConfig(options) {
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
-		port: options.port ?? 3000,
+		port: options.port ?? 9926,
 		prebuilt: options.prebuilt ?? false,
 		subPath: options.subPath ?? '',
 		cache: options.cache ?? false,

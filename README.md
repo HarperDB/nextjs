@@ -110,7 +110,7 @@ Specify an install command. Defaults to `npm install`.
 
 ### `port: number`
 
-Specify a port for the Next.js server. Defaults to `3000`.
+Specify a port for the Next.js server. Defaults to `9926`.
 
 ### `prebuilt: boolean`
 

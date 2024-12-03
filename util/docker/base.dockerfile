@@ -37,8 +37,9 @@ ARG CACHE_BUST
 RUN echo "${CACHE_BUST}"
 COPY config.yaml extension.js cli.js package.json /@harperdb/nextjs/
 
+WORKDIR /@harperdb/nextjs
 # Install dependencies for the @harperdb/nextjs module
-RUN npm install -C /@harperdb/nextjs
+RUN npm install
 
 # Create link to the @harperdb/nextjs module
-RUN npm link -C /@harperdb/nextjs
+RUN npm link

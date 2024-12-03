@@ -11,7 +11,8 @@ ARG CACHE_BUST
 RUN echo "${CACHE_BUST}"
 COPY fixtures/next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
 
-RUN cd hdb/components/next-${NEXT_MAJOR} && npm install
+WORKDIR /hdb/components/next-${NEXT_MAJOR}
+RUN npm install
 
 EXPOSE 9925 9926
 

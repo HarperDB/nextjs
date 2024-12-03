@@ -7,8 +7,6 @@ import { createRequire } from 'node:module';
 
 import shellQuote from 'shell-quote';
 
-const { NextCache } = databases.cache;
-
 /**
  * @typedef {Object} ExtensionOptions - The configuration options for the extension. These are all configurable via `config.yaml`.
  * @property {string=} buildCommand - A custom build command. Default to `next build`.
@@ -290,42 +288,11 @@ export function start(options = {}) {
 					if (config.subPath && !request._nodeRequest.url.startsWith(`/${config.subPath}/`)) {
 						return nextHandler(request);
 					}
-					const handler = (nodeResponse) => {
-						// define a handler that will call the Next.js app, that can pass through to the cache resolver function
-						let nodeRequest = request._nodeRequest;
-						nodeRequest.url = config.subPath
-							? nodeRequest.url.replace(new RegExp(`^\/${config.subPath}\/`), '/')
-							: nodeRequest.url;
-						return requestHandler(nodeRequest, nodeResponse, url.parse(nodeRequest.url, true));
-					};
-					if (config.cache && request.method === 'POST' && request.url === '/invalidate') {
-						// invalidate the cache
-						let last;
-						for await (let entry of NextCache.search([], { onlyIfCached: true, noCacheStore: true })) {
-							last = NextCache.delete(entry.id);
-						}
-						await last;
-						return { status: 200, headers: {}, body: 'Cache invalidated' };
-					}
-					// check if the request is cacheable
-					if (request.method === 'GET' && config.cache) {
-						request.handler = handler;
-						// use our cache table
-						let response = await NextCache.get(request.url, request);
-						// if have cache miss, we let the handler actually directly write to the node response object
-						// and stream the results to the client, so we don't need to return anything here
-						if (!request._nodeResponse.writableEnded) {
-							// but if we have a cache hit, we can return the cached response
-							return {
-								status: 200,
-								headers: { ...response.headers.toJSON(), 'X-HarperDB-Cache': 'HIT' },
-								body: response.content,
-							};
-						}
-					} else {
-						// else we just let the handler write to the node response object
-						return handler(request._nodeResponse);
-					}
+					let nodeRequest = request._nodeRequest;
+					nodeRequest.url = config.subPath
+						? nodeRequest.url.replace(new RegExp(`^\/${config.subPath}\/`), '/')
+						: nodeRequest.url;
+					return requestHandler(nodeRequest, request._nodeResponse, url.parse(nodeRequest.url, true));
 				},
 				{ port: config.port, securePort: config.securePort }
 			);
@@ -343,50 +310,3 @@ export function start(options = {}) {
 		},
 	};
 }
-
-/**
- * Source the Next.js cache from request resolution using the passed in Next.js request handler,
- * and intercepting the response to cache it.
- */
-NextCache.sourcedFrom({
-	async get(path, context) {
-		const request = context.requestContext;
-		return new Promise((resolve, reject) => {
-			const nodeResponse = request._nodeResponse;
-			if (!nodeResponse) return;
-			let cacheable;
-			// intercept the main methods to get and cache the response
-			const writeHead = nodeResponse.writeHead;
-			nodeResponse.writeHead = (status, message, headers) => {
-				nodeResponse.setHeader('X-HarperDB-Cache', 'MISS');
-				if (status === 200) cacheable = true;
-				writeHead.call(nodeResponse, status, message, headers);
-			};
-			const blocks = []; // collect the blocks of response data to cache
-			const write = nodeResponse.write;
-			nodeResponse.write = (block) => {
-				if (typeof block === 'string') block = Buffer.from(block);
-				blocks.push(block);
-				write.call(nodeResponse, block);
-			};
-			const end = nodeResponse.end;
-			nodeResponse.end = (block) => {
-				// now we have the full response, cache it
-				if (block) {
-					if (typeof block === 'string') block = Buffer.from(block);
-					blocks.push(block);
-				}
-				end.call(nodeResponse, block);
-				if (!cacheable) context.noCacheStore = true;
-				// cache the response, with the headers and content
-				resolve({
-					id: path,
-					headers: nodeResponse._headers,
-					content: blocks.length > 1 ? Buffer.concat(blocks) : blocks[0],
-				});
-			};
-
-			request.handler(nodeResponse);
-		});
-	},
-});

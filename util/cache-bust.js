@@ -24,7 +24,6 @@ export const MODULE_CACHE_BUST = getCacheBustValue([
 	'config.yaml',
 	'cli.js',
 	'extension.js',
-	'schema.graphql',
 	'package.json',
 ]);
 

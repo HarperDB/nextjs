@@ -35,7 +35,7 @@ RUN mkdir -p /@harperdb/nextjs
 # Cache Bust copying project files
 ARG CACHE_BUST
 RUN echo "${CACHE_BUST}"
-COPY config.yaml extension.js cli.js schema.graphql package.json /@harperdb/nextjs/
+COPY config.yaml extension.js cli.js package.json /@harperdb/nextjs/
 
 # Install dependencies for the @harperdb/nextjs module
 RUN npm install -C /@harperdb/nextjs

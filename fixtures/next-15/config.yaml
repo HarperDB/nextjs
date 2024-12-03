@@ -1,0 +1,4 @@
+'@harperdb/nextjs':
+  package: '@harperdb/nextjs'
+  files: '/*'
+  port: 9926

@@ -13,7 +13,8 @@ import shellQuote from 'shell-quote';
  * @property {string=} buildOnly - Build the Next.js app and exit. Defaults to `false`.
  * @property {boolean=} dev - Enable dev mode. Defaults to `false`.
  * @property {string=} installCommand - A custom install command. Defaults to `npm install`.
- * @property {number=} port - A port for the Next.js server. Defaults to `3000`.
+ * @property {number=} port - A port for the Next.js server. Defaults to the HarperDB HTTP Port.
+ * @property {number=} securePort - A (secure) port for the https Next.js server. Defaults to the HarperDB HTTPS Secure Port.
  * @property {boolean=} prebuilt - Instruct the extension to skip executing the `buildCommand`. Defaults to `false`.
  * @property {string=} subPath - A sub path for serving request from. Defaults to `''`.
  */
@@ -59,6 +60,7 @@ function resolveConfig(options) {
 	assertType('dev', options.dev, 'boolean');
 	assertType('installCommand', options.installCommand, 'string');
 	assertType('port', options.port, 'number');
+	assertType('securePort', options.securePort, 'number');
 	assertType('prebuilt', options.prebuilt, 'boolean');
 	assertType('subPath', options.subPath, 'string');
 
@@ -75,7 +77,8 @@ function resolveConfig(options) {
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
-		port: options.port ?? 3000,
+		port: options.port,
+		securePort: options.securePort,
 		prebuilt: options.prebuilt ?? false,
 		subPath: options.subPath ?? '',
 		cache: options.cache ?? false,
@@ -291,7 +294,7 @@ export function start(options = {}) {
 						: nodeRequest.url;
 					return requestHandler(nodeRequest, request._nodeResponse, url.parse(nodeRequest.url, true));
 				},
-				{ port: config.port }
+				{ port: config.port, securePort: config.securePort }
 			);
 
 			if (config.dev) {

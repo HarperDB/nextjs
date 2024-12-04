@@ -20,12 +20,7 @@ export function getCacheBustValue(files) {
 	});
 }
 
-export const MODULE_CACHE_BUST = getCacheBustValue([
-	'config.yaml',
-	'cli.js',
-	'extension.js',
-	'package.json',
-]);
+export const MODULE_CACHE_BUST = getCacheBustValue(['config.yaml', 'cli.js', 'extension.js', 'package.json']);
 
 export function getNextFixtureCacheBustValue(nextMajor) {
 	return getCacheBustValue(readdirSync(join(ROOT, 'fixtures', `next-${nextMajor}`)));

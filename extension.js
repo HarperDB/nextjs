@@ -77,8 +77,8 @@ function resolveConfig(options) {
 		buildOnly: options.buildOnly ?? false,
 		dev: options.dev ?? false,
 		installCommand: options.installCommand ?? 'npm install',
-		port: options.port ?? options.server.config.http.port,
-		securePort: options.securePort ?? options.server.config.http.securePort,
+		port: options.port,
+		securePort: options.securePort,
 		prebuilt: options.prebuilt ?? false,
 		subPath: options.subPath ?? '',
 		cache: options.cache ?? false,
@@ -303,8 +303,6 @@ export function start(options = {}) {
 					return upgradeHandler(req, socket, head);
 				});
 			}
-
-			logger.info(`Next.js App available on localhost:${config.port}`);
 
 			return true;
 		},

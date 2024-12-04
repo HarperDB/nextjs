@@ -14,6 +14,8 @@ COPY fixtures/next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
 WORKDIR /hdb/components/next-${NEXT_MAJOR}
 RUN npm install
 
+WORKDIR /
+
 EXPOSE 9925 9926
 
 CMD ["harperdb", "run"]

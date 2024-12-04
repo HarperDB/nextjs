@@ -43,3 +43,5 @@ RUN npm install
 
 # Create link to the @harperdb/nextjs module
 RUN npm link
+
+WORKDIR /

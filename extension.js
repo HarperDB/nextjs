@@ -219,14 +219,6 @@ export function startOnMainThread(options = {}) {
 
 			const componentRequire = createRequire(componentPath);
 
-			// TODO: support .ts and .mjs configs
-			// TODO: document what this require is implicitly doing (i.e. loads config file so cache is instantiated?)
-			try {
-				componentRequire('./next.config.js');
-			} catch (error) {
-				logger.error('Failed to load next.config.js', error);
-			}
-
 			try {
 				componentRequire.resolve('next');
 			} catch (error) {

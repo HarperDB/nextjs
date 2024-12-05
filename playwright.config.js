@@ -15,7 +15,6 @@ export default defineConfig({
 			name: `Next.js v${nextMajor} - Node.js v${nodeMajor}`,
 			use: { versions: { nextMajor, nodeMajor }, ...devices['Desktop Chrome'] },
 			testMatch: [`test/next-${nextMajor}.test.js`],
-			dependencies: ['setup'],
 		})),
 	],
 });

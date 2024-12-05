@@ -1,7 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-
-const NEXT_MAJORS = ['13', '14', '15'];
-const NODE_MAJORS = ['18', '20', '22'];
+import { VERSION_MATRIX } from './util/constants-and-names';
 
 export default defineConfig({
 	testDir: 'test',
@@ -12,11 +10,12 @@ export default defineConfig({
 	expect: {
 		timeout: 30000,
 	},
-	projects: NEXT_MAJORS.flatMap((nextMajor) =>
-		NODE_MAJORS.map((nodeMajor) => ({
+	projects: [
+		...VERSION_MATRIX.map(([nextMajor, nodeMajor]) => ({
 			name: `Next.js v${nextMajor} - Node.js v${nodeMajor}`,
 			use: { versions: { nextMajor, nodeMajor }, ...devices['Desktop Chrome'] },
 			testMatch: [`test/next-${nextMajor}.test.js`],
-		}))
-	),
+			dependencies: ['setup'],
+		})),
+	],
 });

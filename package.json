@@ -36,7 +36,8 @@
 		"format:check": "npm run format -- --check",
 		"format:fix": "npm run format -- --write",
 		"pretest": "node util/scripts/pretest.js",
-		"test": "playwright test --workers 3"
+		"test": "playwright test --workers 3",
+		"build-fixture": "node util/scripts/build-fixture-cli.js"
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"

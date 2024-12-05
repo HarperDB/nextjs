@@ -7,15 +7,11 @@ FROM ${BASE_IMAGE}
 
 ARG NEXT_MAJOR
 
-ARG CACHE_BUST
-RUN echo "${CACHE_BUST}"
 COPY fixtures/next-${NEXT_MAJOR} /hdb/components/next-${NEXT_MAJOR}
 
 WORKDIR /hdb/components/next-${NEXT_MAJOR}
+
+# Fixtures should automatically link the @harperdb/nextjs module via their postinstall script.
 RUN npm install
 
 WORKDIR /
-
-EXPOSE 9925 9926
-
-CMD ["harperdb", "run"]

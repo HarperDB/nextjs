@@ -1,7 +1,14 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { Transform } from 'node:stream';
 
-import { getNextImageName, getNextContainerName, NEXT_MAJORS, NODE_MAJORS, PORTS } from './constants-and-names.js';
+import {
+	getNextImageName,
+	getNextContainerName,
+	NEXT_MAJORS,
+	NODE_MAJORS,
+	PORTS,
+	DEBUG,
+} from './constants-and-names.js';
 import { CONTAINER_ENGINE } from './container-engine.js';
 import { CollectedTransform } from './collected-transform.js';
 
@@ -17,7 +24,7 @@ export class Fixture {
 		}
 		this.nodeMajor = nodeMajor;
 
-		this.debug = debug || process.env.DEBUG === '1';
+		this.debug = debug || DEBUG;
 
 		this.imageName = getNextImageName(nextMajor, nodeMajor);
 		this.containerName = getNextContainerName(nextMajor, nodeMajor);

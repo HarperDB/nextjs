@@ -4,10 +4,6 @@ export const DEBUG = process.env.DEBUG === '1';
 
 export const ROOT = join(import.meta.dirname, '..');
 
-// export const NEXT_MAJORS = ['13', '14', '15'];
-
-// export const NODE_MAJORS = ['16', '18', '20', '22'];
-
 export const VERSION_MATRIX = [
 	// Next.js v9
 	['9', '16'],

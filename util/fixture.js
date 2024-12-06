@@ -1,23 +1,30 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { Transform } from 'node:stream';
 
-import { getNextImageName, getNextContainerName, NEXT_MAJORS, NODE_MAJORS, PORTS } from './constants-and-names.js';
+import {
+	getNextImageName,
+	getNextContainerName,
+	NEXT_MAJORS,
+	NODE_MAJORS,
+	PORTS,
+	DEBUG,
+} from './constants-and-names.js';
 import { CONTAINER_ENGINE } from './container-engine.js';
 import { CollectedTransform } from './collected-transform.js';
 
 export class Fixture {
 	constructor({ autoSetup = true, debug = false, nextMajor, nodeMajor }) {
-		if (!NEXT_MAJORS.includes(nextMajor)) {
+		if (!NEXT_MAJORS.has(nextMajor)) {
 			throw new Error(`nextMajor must be one of ${NEXT_MAJORS.join(', ')}`);
 		}
 		this.nextMajor = nextMajor;
 
-		if (!NODE_MAJORS.includes(nodeMajor)) {
+		if (!NODE_MAJORS.has(nodeMajor)) {
 			throw new Error(`nodeMajor must be one of ${NODE_MAJORS.join(', ')}`);
 		}
 		this.nodeMajor = nodeMajor;
 
-		this.debug = debug || process.env.DEBUG === '1';
+		this.debug = debug || DEBUG;
 
 		this.imageName = getNextImageName(nextMajor, nodeMajor);
 		this.containerName = getNextContainerName(nextMajor, nodeMajor);

@@ -3,14 +3,19 @@
 
 ARG NODE_MAJOR
 
-FROM node:${NODE_MAJOR}
+FROM docker.io/node:${NODE_MAJOR}-slim
 
+EXPOSE 9925 9926
+
+# Install utilities for the container
 RUN apt-get update && apt-get install -y \
-	curl \
+	# List of tools to install
+	# curl \
+	# Clean Up
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install HarperDB Globally
-RUN npm install -g harperdb
+RUN npm install -g harperdb@4.4.8
 
 # Set HarperDB Environment Variables
 ENV TC_AGREEMENT=yes
@@ -23,8 +28,7 @@ ENV THREADS_COUNT=1
 ENV LOGGING_STDSTREAMS=true
 ENV LOGGING_LEVEL=debug
 
-# Create components directory
-RUN mkdir -p /hdb/components
+RUN harperdb start
 
 # Add base component
 COPY /fixtures/harperdb-base-component /hdb/components/harperdb-base-component
@@ -32,16 +36,17 @@ COPY /fixtures/harperdb-base-component /hdb/components/harperdb-base-component
 # Create the @harperdb/nextjs module directory so it can be linked locally
 RUN mkdir -p /@harperdb/nextjs
 
-# Cache Bust copying project files
-ARG CACHE_BUST
-RUN echo "${CACHE_BUST}"
 COPY config.yaml extension.js cli.js package.json /@harperdb/nextjs/
 
 WORKDIR /@harperdb/nextjs
+
 # Install dependencies for the @harperdb/nextjs module
-RUN npm install
+RUN npm install --omit=dev
 
 # Create link to the @harperdb/nextjs module
 RUN npm link
 
 WORKDIR /
+
+# By default, run HarperDB when the container starts. This can be overridden by passing a different command to the container, or using a new CMD in a child Dockerfile.
+CMD harperdb run

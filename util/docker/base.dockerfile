@@ -27,6 +27,7 @@ ENV HTTP_PORT=9926
 ENV THREADS_COUNT=1
 ENV LOGGING_STDSTREAMS=true
 ENV LOGGING_LEVEL=debug
+ENV AUTHENTICATION_AUTHORIZELOCAL=false
 
 RUN harperdb start
 
@@ -47,6 +48,8 @@ RUN npm install --omit=dev
 RUN npm link
 
 WORKDIR /
+
+RUN harperdb start
 
 # By default, run HarperDB when the container starts. This can be overridden by passing a different command to the container, or using a new CMD in a child Dockerfile.
 CMD harperdb run

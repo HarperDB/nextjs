@@ -1,4 +1,5 @@
 {
 	"name": "harperdb-base-component",
-	"private": true
+	"private": true,
+	"type": "module"
 }

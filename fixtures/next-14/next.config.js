@@ -1,1 +1,12 @@
-module.exports = {};
+module.exports = {
+	webpack: (config) => {
+		config.externals.push({
+			harperdb: 'commonjs harperdb',
+		});
+
+		return config;
+	},
+	experimental: {
+		serverComponentsExternalPackages: ['harperdb'],
+	},
+};

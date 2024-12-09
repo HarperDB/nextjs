@@ -6,12 +6,17 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"postinstall": "npm link @harperdb/nextjs"
+		"postinstall": "npm link @harperdb/nextjs",
+		"test": "playwright test"
 	},
 	"dependencies": {
 		"@harperdb/nextjs": "*",
+		"harperdb": "^4.4.8",
+		"next": "^14",
 		"react": "^18",
-		"react-dom": "^18",
-		"next": "^14"
+		"react-dom": "^18"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.49.0"
 	}
 }

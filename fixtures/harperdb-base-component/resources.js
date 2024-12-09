@@ -12,7 +12,7 @@ const dogs = [
 	{ id: '10', name: 'Bailey', breed: 'Golden Retriever' },
 	{ id: '11', name: 'Sadie', breed: 'Belgian Malinois' },
 ];
-
+console.log('testing');
 for (const dog of dogs) {
-	tables.Dog.put(dog);
+	await tables.Dog.put(dog);
 }

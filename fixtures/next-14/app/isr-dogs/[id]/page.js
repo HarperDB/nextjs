@@ -1,10 +1,17 @@
 import Dog from '../../components/Dog';
-import { listDogs } from '../../actions';
+import { listDogs, getDog } from '../../data';
 
-export const revalidate = 10;
+export const revalidate = 1;
 
 export default async function ISRDog({ params }) {
-	return <Dog id={params.id} />;
+	const dog = await getDog(params.id);
+
+	return (
+		<div>
+			<p data-testid="when">{new Date().toISOString()}</p>
+			<Dog dog={dog} />
+		</div>
+	);
 }
 
 export function generateStaticParams() {

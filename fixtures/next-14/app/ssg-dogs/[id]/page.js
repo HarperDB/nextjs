@@ -1,9 +1,15 @@
 import Dog from '../../components/Dog';
-import { listDogs } from '../../actions';
+import { getDog, listDogs } from '../../data';
 
-// No revalidation. This page renders based on the list of dogs returned by generateStaticParams.
 export default async function SSGDog({ params }) {
-	return <Dog id={params.id} />;
+	const dog = getDog(params.id);
+
+	return (
+		<div>
+			<p data-testid="when">{new Date().toISOString()}</p>
+			<Dog dog={dog} />
+		</div>
+	);
 }
 
 export function generateStaticParams() {

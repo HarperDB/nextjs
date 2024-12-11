@@ -37,7 +37,7 @@ jobs:
           LOGGING_STDSTREAMS: true
           LOGGING_LEVEL: debug
           AUTHENTICATION_AUTHORIZELOCAL: false
-        run: harperdb start && sleep 5
+        run: harperdb install
 
       - name: Install Next.js v14 Fixture dependencies
         working-directory: ./fixtures/next-14

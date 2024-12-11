@@ -5,5 +5,5 @@ export function middleware(request) {
 }
 
 export const config = {
-	matcher: '/test-middleware'
-}
+	matcher: '/test-middleware',
+};

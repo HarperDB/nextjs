@@ -6,4 +6,4 @@ module.exports = function globalTeardown(config) {
 		harperdbProcess.on('error', reject);
 		harperdbProcess.on('exit', resolve);
 	});
-}
+};

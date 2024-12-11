@@ -5,5 +5,5 @@ export function getDog(id) {
 }
 
 export function listDogs() {
-	return tables.Dog.search().map(dog => ({ id: dog.id }));
+	return tables.Dog.search().map((dog) => ({ id: dog.id }));
 }

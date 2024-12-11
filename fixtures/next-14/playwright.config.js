@@ -11,7 +11,7 @@ module.exports = defineConfig({
 		{
 			name: 'chromium',
 			use: { ...devices['Desktop Chrome'] },
-		}
+		},
 	],
 	globalSetup: require.resolve('./global-setup.js'),
 	globalTeardown: require.resolve('./global-teardown.js'),

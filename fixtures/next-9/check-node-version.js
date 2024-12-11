@@ -1,4 +1,4 @@
-const required = "16";
+const required = '16';
 const current = process.version.slice(1).split('.')[0];
 
 if (current !== required) {

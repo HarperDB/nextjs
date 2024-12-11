@@ -37,17 +37,21 @@ module.exports = async function globalSetup(config) {
 	await new Promise((resolve, reject) => {
 		console.log('npx harperdb run', config.rootDir);
 		const harperdbProcess = spawn('npx', ['harperdb', 'run', config.rootDir]);
-	
+
 		harperdbProcess.on('error', reject);
 		harperdbProcess.on('exit', resolve);
-	
-		harperdbProcess.stdout.pipe(new Transform({
-			transform(chunk, encoding, callback) {
-				if (/HarperDB \d+.\d+.\d+ successfully started/.test(chunk.toString())) {
-					resolve();
-				}
-				callback(null, chunk);
-			}
-		})).pipe(process.stdout);
+
+		harperdbProcess.stdout
+			.pipe(
+				new Transform({
+					transform(chunk, encoding, callback) {
+						if (/HarperDB \d+.\d+.\d+ successfully started/.test(chunk.toString())) {
+							resolve();
+						}
+						callback(null, chunk);
+					},
+				})
+			)
+			.pipe(process.stdout);
 	});
-}
+};

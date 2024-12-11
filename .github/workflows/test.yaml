@@ -40,17 +40,16 @@ jobs:
         run: harperdb start && sleep 5
 
       - name: Install Next.js v14 Fixture dependencies
-        working-directory: fixtures/next-14
+        working-directory: ./fixtures/next-14
         run: |
           npm install
           npx playwright install chromium --with-deps
 
       - name: Run Next.js v14 Fixture tests
-        working-directory: fixtures/next-14
+        working-directory: ./fixtures/next-14
         run: npm run test
 
       - uses: actions/upload-artifact@v4
-        working-directory: fixtures/next-14
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

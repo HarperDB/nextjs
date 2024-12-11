@@ -5,8 +5,5 @@ module.exports = {
 		});
 
 		return config;
-	},
-	experimental: {
-		serverComponentsExternalPackages: ['harperdb'],
-	},
+	}
 };

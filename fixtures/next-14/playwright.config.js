@@ -10,9 +10,9 @@ module.exports = defineConfig({
 	projects: [
 		{
 			name: 'chromium',
-			use: { ...devices['Desktop Chrome'], channel: 'chromium' },
+			use: { ...devices['Desktop Chrome'] },
 		}
 	],
-	globalSetup: require.resolve('test-utils/global-setup.js'),
-	globalTeardown: require.resolve('test-utils/global-teardown.js'),
+	globalSetup: require.resolve('./global-setup.js'),
+	globalTeardown: require.resolve('./global-teardown.js'),
 });

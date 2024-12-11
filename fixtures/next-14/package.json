@@ -6,7 +6,7 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"postinstall": "npm link harperdb",
+		"postinstall": "npm link harperdb && npx playwright install chromium",
 		"test": "playwright test"
 	},
 	"dependencies": {

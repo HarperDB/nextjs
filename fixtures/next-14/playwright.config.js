@@ -1,15 +1,18 @@
 const { defineConfig, devices } = require('@playwright/test');
-const { join } = require('node:path');
 
 module.exports = defineConfig({
-	testDir: 'test',
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
+	retries: 2,
+	expect: {
+		timeout: 30000,
+	},
 	projects: [
 		{
-			use: { ...devices['Desktop Chrome'] },
+			name: 'chromium',
+			use: { ...devices['Desktop Chrome'], channel: 'chromium' },
 		}
 	],
-	globalSetup: join(__dirname, './util/global-setup.js'),
-	globalTeardown: join(__dirname, './util/global-teardown.js'),
+	globalSetup: require.resolve('test-utils/global-setup.js'),
+	globalTeardown: require.resolve('test-utils/global-teardown.js'),
 });

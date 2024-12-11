@@ -29,10 +29,12 @@ ENV LOGGING_STDSTREAMS=true
 ENV LOGGING_LEVEL=debug
 ENV AUTHENTICATION_AUTHORIZELOCAL=false
 
-RUN harperdb start
+RUN harperdb start && sleep 5
 
 # Add base component
 COPY /fixtures/harperdb-base-component /hdb/components/harperdb-base-component
+
+RUN harperdb start && sleep 5
 
 # Create the @harperdb/nextjs module directory so it can be linked locally
 RUN mkdir -p /@harperdb/nextjs

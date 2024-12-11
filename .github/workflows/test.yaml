@@ -1,4 +1,4 @@
-name: Test
+name: Test Next.js v14
 
 on:
   push:
@@ -21,6 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install HarperDB
+        run: npm i -g harperdb@4.4.8
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

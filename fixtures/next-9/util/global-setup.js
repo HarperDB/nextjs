@@ -11,8 +11,7 @@ module.exports = function globalSetup(config) {
 
 		harperdbProcess.stdout.pipe(new Transform({
 			transform(chunk, encoding, callback) {
-				const data = chunk.toString();
-				if (/HarperDB \d+.\d+.\d+ successfully started/.test(data)) {
+				if (/HarperDB \d+.\d+.\d+ successfully started/.test(chunk.toString())) {
 					resolve();
 				}
 				callback(null, chunk);

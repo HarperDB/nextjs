@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// test.describe.configure({ mode: 'serial' });
 const baseURL = 'http://localhost:9926';
 
 test('home page', async ({ page }) => {
@@ -94,4 +93,11 @@ test.describe('caching', () => {
 
 		expect(when1).not.toBe(when2);
 	});
+});
+
+test('middleware', async ({ page }) => {
+	const response = await fetch(`${baseURL}/test-middleware`);
+	expect(response.headers.get('x-middleware')).toBe('true');
+	const text = await response.text();
+	expect(text).toBe('Hello from middleware');
 });

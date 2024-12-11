@@ -34,17 +34,13 @@
 	"scripts": {
 		"format": "prettier .",
 		"format:check": "npm run format -- --check",
-		"format:fix": "npm run format -- --write",
-		"pretest": "node util/scripts/pretest.js",
-		"test": "playwright test --workers 3",
-		"build-fixture": "node util/scripts/build-fixture-cli.js"
+		"format:fix": "npm run format -- --write"
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"
 	},
 	"devDependencies": {
 		"@harperdb/code-guidelines": "^0.0.2",
-		"@playwright/test": "^1.49.0",
 		"prettier": "^3.3.3"
 	},
 	"prettier": "@harperdb/code-guidelines/prettier"

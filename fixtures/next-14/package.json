@@ -6,12 +6,17 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"postinstall": "npm link @harperdb/nextjs"
+		"postinstall": "npm link harperdb && npx playwright install chromium",
+		"test": "playwright test"
 	},
 	"dependencies": {
-		"@harperdb/nextjs": "*",
+		"@harperdb/nextjs": "file:../../",
+		"next": "^14",
 		"react": "^18",
-		"react-dom": "^18",
-		"next": "^14"
+		"react-dom": "^18"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.49.0",
+		"test-utils": "file:../../test-utils/"
 	}
 }

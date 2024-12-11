@@ -7,7 +7,9 @@ const { setTimeout } = require('node:timers/promises');
 const ROOT = join(__dirname, '..');
 
 function getComponents() {
-	const componentsString = execSync(`npx harperdb get_components json=true`, { encoding: 'utf-8' });
+	const componentsString = execSync(`npx harperdb get_components json=true`, {
+		encoding: 'utf-8',
+	});
 	return JSON.parse(componentsString);
 }
 

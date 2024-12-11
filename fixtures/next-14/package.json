@@ -2,9 +2,9 @@
 	"name": "next-14",
 	"private": true,
 	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
+		"dev": "harperdb-nextjs dev",
+		"build": "harperdb-nextjs build",
+		"start": "harperdb-nextjs start",
 		"lint": "next lint",
 		"postinstall": "npm link harperdb && npx playwright install chromium",
 		"test": "playwright test"

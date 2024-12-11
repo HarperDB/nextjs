@@ -41,7 +41,7 @@
 	},
 	"devDependencies": {
 		"@harperdb/code-guidelines": "^0.0.2",
-		"prettier": "^3.3.3"
+		"prettier": "^3.4.2"
 	},
 	"prettier": "@harperdb/code-guidelines/prettier"
 }

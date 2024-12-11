@@ -5,6 +5,7 @@ const baseURL = 'http://localhost:9926';
 test('home page', async ({ page }) => {
 	await page.goto(baseURL);
 	await expect(page.locator('h1')).toHaveText('Next.js v14');
+	await expect(page.locator('img')).toBeVisible();
 });
 
 test('title', async ({ page }) => {

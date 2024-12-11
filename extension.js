@@ -177,7 +177,10 @@ function executeCommand(commandInput, componentPath) {
 
 		const cp = child_process.spawn(command, args, {
 			cwd: componentPath,
-			env: { ...process.env, PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin` },
+			env: {
+				...process.env,
+				PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin`,
+			},
 			stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
 		});
 

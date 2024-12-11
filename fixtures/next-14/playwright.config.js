@@ -13,6 +13,6 @@ module.exports = defineConfig({
 			use: { ...devices['Desktop Chrome'] },
 		},
 	],
-	globalSetup: require.resolve('./global-setup.js'),
-	globalTeardown: require.resolve('./global-teardown.js'),
+	globalSetup: require.resolve('test-utils/global-setup.js'),
+	globalTeardown: require.resolve('test-utils/global-teardown.js'),
 });

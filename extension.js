@@ -222,6 +222,9 @@ export function startOnMainThread(options = {}) {
 
 			const componentRequire = createRequire(componentPath);
 
+			if (options.useAsCWD) {
+				process.chdir(componentPath);
+			}
 			try {
 				componentRequire.resolve('next');
 			} catch (error) {

@@ -222,7 +222,7 @@ export function startOnMainThread(options = {}) {
 
 			const componentRequire = createRequire(componentPath);
 
-			if (options.useAsCWD) {
+			if (options.useAsCWD !== false) {
 				process.chdir(componentPath);
 			}
 			try {

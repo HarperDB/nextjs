@@ -223,6 +223,8 @@ export function startOnMainThread(options = {}) {
 			const componentRequire = createRequire(componentPath);
 
 			if (options.useAsCWD !== false) {
+				// Change the current working directory to the component path, a lot of Next.js components expect this
+				// (although not Next.js itself)
 				process.chdir(componentPath);
 			}
 			try {

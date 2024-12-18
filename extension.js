@@ -4,6 +4,7 @@ import url from 'node:url';
 import child_process from 'node:child_process';
 import assert from 'node:assert';
 import { createRequire } from 'node:module';
+import { performance } from 'node:perf_hooks';
 
 import shellQuote from 'shell-quote';
 
@@ -243,7 +244,16 @@ export function startOnMainThread(options = {}) {
 			}
 
 			if (!config.prebuilt && !config.dev) {
+				const timerStart = performance.now();
 				await executeCommand(config.buildCommand, componentPath);
+				const timerStop = performance.now();
+				const duration = timerStop - timerStart;
+				logger.info(`The build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
+
+				// Send build time to HDB analtyics
+				let pathString = componentPath.toString().slice(0, -1);
+				const projectDirectoryName = pathString.split("/").pop();
+				server.recordAnalytics(duration, 'nextjs_build_time_in_milliseconds', projectDirectoryName);
 
 				if (config.buildOnly) process.exit(0);
 			}

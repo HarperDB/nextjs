@@ -247,8 +247,8 @@ export function startOnMainThread(options = {}) {
 				const timerStart = performance.now();
 				await executeCommand(config.buildCommand, componentPath);
 				const timerStop = performance.now();
-				// const duration = timerStop - timerStart;
 				const durationInSeconds = (((timerStop - timerStart) % 60000) / 1000).toFixed(2);
+				
 				console.log(`The build took ${durationInSeconds} seconds`);
 
 				if (config.buildOnly) process.exit(0);

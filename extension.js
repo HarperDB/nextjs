@@ -4,6 +4,7 @@ import url from 'node:url';
 import child_process from 'node:child_process';
 import assert from 'node:assert';
 import { createRequire } from 'node:module';
+import { performance } from 'node:perf_hooks';
 
 import shellQuote from 'shell-quote';
 
@@ -243,7 +244,12 @@ export function startOnMainThread(options = {}) {
 			}
 
 			if (!config.prebuilt && !config.dev) {
+				const timerStart = performance.now();
 				await executeCommand(config.buildCommand, componentPath);
+				const timerStop = performance.now();
+				// const duration = timerStop - timerStart;
+				const durationInSeconds = (((timerStop - timerStart) % 60000) / 1000).toFixed(2);
+				console.log(`The build took ${durationInSeconds} seconds`);
 
 				if (config.buildOnly) process.exit(0);
 			}

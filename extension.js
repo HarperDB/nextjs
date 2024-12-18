@@ -252,7 +252,7 @@ export function startOnMainThread(options = {}) {
 
 				// Send build time to HDB analtyics
 				let pathString = componentPath.toString().slice(0, -1);
-				const projectDirectoryName = pathString.split("/").pop();
+				const projectDirectoryName = pathString.split('/').pop();
 				server.recordAnalytics(duration, 'nextjs_build_time_in_milliseconds', projectDirectoryName);
 
 				if (config.buildOnly) process.exit(0);

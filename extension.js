@@ -247,9 +247,13 @@ export function startOnMainThread(options = {}) {
 				const timerStart = performance.now();
 				await executeCommand(config.buildCommand, componentPath);
 				const timerStop = performance.now();
-				const durationInSeconds = (((timerStop - timerStart) % 60000) / 1000).toFixed(2);
-				
-				console.log(`The build took ${durationInSeconds} seconds`);
+				const duration = timerStop - timerStart;
+				logger.info(`The build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
+
+				// Send build time to HDB analtyics
+				let pathString = componentPath.toString().slice(0, -1);
+				const projectDirectoryName = pathString.split("/").pop();
+				server.recordAnalytics(duration, 'nextjs_build_time_in_milliseconds', projectDirectoryName);
 
 				if (config.buildOnly) process.exit(0);
 			}

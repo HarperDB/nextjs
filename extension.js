@@ -182,7 +182,7 @@ function executeCommand(commandInput, componentPath) {
 				...process.env,
 				PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin`,
 			},
-			stdio: logger.log_level === 'debug' ? 'inherit' : 'ignore',
+			stdio: ['info', 'debug', 'trace'].includes(logger.log_level) ? 'inherit' : 'ignore',
 		});
 
 		cp.on('error', (error) => {

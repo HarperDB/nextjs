@@ -1,11 +1,11 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import url from 'node:url';
-import child_process from 'node:child_process';
-import assert from 'node:assert';
+import { existsSync, statSync, readFileSync, openSync, writeSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { parse as urlParse } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { performance } from 'node:perf_hooks';
+import { tmpdir } from 'node:os';
 
 import shellQuote from 'shell-quote';
 
@@ -27,14 +27,14 @@ import shellQuote from 'shell-quote';
  * @param {string} expectedType The expected type (i.e. `'string'`, `'number'`, `'boolean'`, etc.)
  */
 function assertType(name, option, expectedType) {
-	if (option) {
-		const found = typeof option;
-		assert.strictEqual(found, expectedType, `${name} must be type ${expectedType}. Received: ${found}`);
+	if (option && typeof option !== expectedType) {
+		throw new HarperDBNextJSExtensionError(`${name} must be type ${expectedType}. Received: ${typeof option}`);
 	}
 }
 
 /**
- * Resolves the incoming extension options into a config for use throughout the extension
+ * Resolves the incoming extension options into a config for use throughout the extension.
+ *
  * @param {ExtensionOptions} options - The options object to be resolved into a configuration
  * @returns {Required<ExtensionOptions>}
  */
@@ -72,38 +72,28 @@ function resolveConfig(options) {
 		securePort: options.securePort,
 	};
 
-	logger.debug('Next.js Extension Configuration:', JSON.stringify(config, undefined, 2));
+	logger.debug('@harperdb/nextjs extension configuration:\n' + JSON.stringify(config, undefined, 2));
 
 	return config;
 }
 
-class NextJSAppVerificationError extends Error {}
-
-const nextJSAppCache = {};
+class HarperDBNextJSExtensionError extends Error {}
 
 /**
  * This function verifies if the input is a Next.js app through a couple of
- * verification methods. It does not return nor throw anything. It will either
- * succeed (and return the path to the Next.js main file), or log an error to
- * `logger.fatal` and exit the process with exit code 1.
- *
- * Additionally, it memoizes previous verifications.
+ * verification methods. See the implementation for details.
  *
  * @param {string} componentPath
  * @returns {string} The path to the Next.js main file
  */
 function assertNextJSApp(componentPath) {
 	try {
-		if (nextJSAppCache[componentPath]) {
-			return nextJSAppCache[componentPath];
+		if (!existsSync(componentPath)) {
+			throw new HarperDBNextJSExtensionError(`The folder ${componentPath} does not exist`);
 		}
 
-		if (!fs.existsSync(componentPath)) {
-			throw new NextJSAppVerificationError(`The folder ${componentPath} does not exist`);
-		}
-
-		if (!fs.statSync(componentPath).isDirectory) {
-			throw new NextJSAppVerificationError(`The path ${componentPath} is not a folder`);
+		if (!statSync(componentPath).isDirectory) {
+			throw new HarperDBNextJSExtensionError(`The path ${componentPath} is not a folder`);
 		}
 
 		// Couple options to check if its a Next.js project
@@ -119,36 +109,30 @@ function assertNextJSApp(componentPath) {
 		// Edge case: app does not have a config and are using `npx` (or something similar) to execute Next.js
 
 		// Check for Next.js Config
-		const configExists = ['js', 'mjs', 'ts'].some((ext) =>
-			fs.existsSync(path.join(componentPath, `next.config.${ext}`))
-		);
+		const configExists = ['js', 'mjs', 'ts'].some((ext) => existsSync(join(componentPath, `next.config.${ext}`)));
 
 		// Check for dependency
-		let nextJSExists;
-		const packageJSONPath = path.join(componentPath, 'package.json');
-		if (fs.existsSync(packageJSONPath)) {
-			const packageJSON = JSON.parse(fs.readFileSync(packageJSONPath));
+		let dependencyExists = false;
+		const packageJSONPath = join(componentPath, 'package.json');
+		if (existsSync(packageJSONPath)) {
+			const packageJSON = JSON.parse(readFileSync(packageJSONPath));
 			for (let dependencyList of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
 				if (packageJSON[dependencyList]?.['next']) {
-					nextJSExists = true;
+					dependencyExists = true;
 				}
 			}
 		}
 
-		if (!configExists && !nextJSExists) {
-			throw new NextJSAppVerificationError(
+		if (!configExists && !dependencyExists) {
+			throw new HarperDBNextJSExtensionError(
 				`Could not determine if ${componentPath} is a Next.js project. It is missing both a Next.js config file and the "next" dependency in package.json`
 			);
 		}
-
-		nextJSAppCache[componentPath] = nextJSExists;
-
-		return nextJSExists;
 	} catch (error) {
-		if (error instanceof NextJSAppVerificationError) {
-			logger.fatal(`Component path is not a Next.js application: `, error.message);
+		if (error instanceof HarperDBNextJSExtensionError) {
+			logger.fatal(`Component path is not a Next.js application: ` + error.message);
 		} else {
-			logger.fatal(`Unexpected Error thrown during Next.js Verification: `, error);
+			logger.fatal(`Unexpected Error thrown during Next.js Verification: ` + error.toString());
 		}
 
 		throw error;
@@ -156,59 +140,20 @@ function assertNextJSApp(componentPath) {
 }
 
 /**
- * Execute a command as a promise and wait for it to exit before resolving.
- *
- * Will automatically stream output to stdio when log level is set to debug.
- * @param {string} commandInput The command string to be parsed and executed
- * @param {string} componentPath The path to the application component
- * @param {boolean=} debug Print debugging information. Defaults to false
- */
-function executeCommand(commandInput, componentPath) {
-	return new Promise((resolve, reject) => {
-		const [command, ...args] = shellQuote.parse(commandInput);
-
-		const cp = child_process.spawn(command, args, {
-			cwd: componentPath,
-			env: {
-				...process.env,
-				PATH: `${process.env.PATH}:${componentPath}/node_modules/.bin`,
-			},
-			stdio: ['info', 'debug', 'trace'].includes(logger.log_level) ? 'inherit' : 'ignore',
-		});
-
-		cp.on('error', (error) => {
-			if (error.code === 'ENOENT') {
-				logger.fatal(`Command: \`${commandInput}\` not found. Make sure it is included in PATH.`);
-			}
-			reject(error);
-		});
-
-		cp.on('exit', (exitCode) => {
-			logger.debug(`Command: \`${commandInput}\` exited with ${exitCode}`);
-			resolve(exitCode);
-		});
-	});
-}
-
-/**
- * This method is executed once, on the main thread, and is responsible for
- * returning a Resource Extension that will subsequently be executed once,
- * on the main thread.
- *
- * The Resource Extension is responsible for installing application component
- * dependencies and running the application build command.
  *
  * @param {ExtensionOptions} options
  * @returns
  */
-export function startOnMainThread(options = {}) {
+export function startOnMainThread() {
 	return {
 		setupDirectory(_, componentPath) {
+			assertNextJSApp(componentPath);
+
 			// Some Next.js apps will include cwd relative operations throughout the application (generally in places like `next.config.js`).
 			// So set the cwd to the component path by default.
 			process.chdir(componentPath);
 
-			return main(options, componentPath);
+			return true;
 		},
 	};
 }
@@ -236,7 +181,7 @@ async function main(options, componentPath) {
 	// 1. Resolve the extension configuration from the parsed options
 	const config = resolveConfig(options);
 
-	logger.info(`Next.js Extension is setting up ${componentPath}`);
+	logger.info(`@harperdb/nextjs extension is setting up ${componentPath}`);
 
 	// 2. Assert the component path is a Next.js app. This will throw if it is not.
 	assertNextJSApp(componentPath);
@@ -245,7 +190,7 @@ async function main(options, componentPath) {
 
 	// 3a. Prebuilt mode requires validating the `.next` directory exists
 	if (config.prebuilt && !fs.existsSync(path.join(componentPath, '.next'))) {
-		logger.fatal('Prebuilt mode is enabled, but the .next folder does not exist');
+		throw new HarperDBNextJSExtensionError('Prebuilt mode is enabled, but the .next folder does not exist');
 	}
 
 	// 3b. In non prebuilt or dev modes, build the Next.js app.
@@ -254,24 +199,21 @@ async function main(options, componentPath) {
 	if (!config.prebuilt && !config.dev) {
 		// Theoretically, all threads should have roughly the same start time
 		const startTime = Date.now();
-		const buildLockPath = path.join(componentPath, '.harperdb-nextjs-build.lock');
+		const buildLockPath = join(tmpdir(), '.harperdb-nextjs-build.lock');
 
 		while (true) {
 			try {
-				// Try opening the lock
-				const buildLockFD = fs.openSync(buildLockPath, 'wx');
-				// Write the PID to the lock file
-				fs.writeSync(buildLockFD, process.pid.toString());
+				// 3b.1. Open lock
+				const buildLockFD = openSync(buildLockPath, 'wx');
+				writeSync(buildLockFD, process.pid.toString());
 			} catch (error) {
 				if (error.code === 'EEXIST') {
-					// The lock is already open.
-
-					// Ensure it is not stale
 					try {
-						if (fs.statSync(buildLockPath).mtimeMs < startTime + 100) {
+						// 3b.1a. Check if the lock is stale
+						if (statSync(buildLockPath).mtimeMs < startTime - 100) {
 							// The lock was created before (with a 100ms tolerance) any of the threads started building.
 							// Safe to consider it stale and remove it.
-							fs.unlinkSync(buildLockPath);
+							unlinkSync(buildLockPath);
 						}
 					} catch (error) {
 						if (error.code === 'ENOENT') {
@@ -290,18 +232,11 @@ async function main(options, componentPath) {
 				throw error;
 			}
 
-			// Lock is opened
-
 			try {
-				// Check the modification time of the build id file to see if it is stale
-				if (fs.statSync(path.join(componentPath, '.next', 'BUILD_ID')).mtimeMs > startTime) {
-					// The build id file was modified after the start time.
-					// This means the build is fresh and already complete so exit early.
-					fs.unlinkSync(buildLockPath);
+				// 3b.2. Check if the .next/BUILD_ID file is fresh
+				if (statSync(join(componentPath, '.next', 'BUILD_ID')).mtimeMs > startTime) {
+					unlinkSync(buildLockPath);
 					break;
-				} else {
-					// The build id file is stale. Remove the .next directory and build.
-					fs.rmSync(path.join(componentPath, '.next'), { recursive: true });
 				}
 			} catch (error) {
 				// If the build id file does not exist, continue to building
@@ -311,28 +246,40 @@ async function main(options, componentPath) {
 				}
 			}
 
-			// Finally, build the Next.js app
+			// 3b.3. Build
+			const [command, ...args] = shellQuote.parse(config.buildCommand);
+
 			const timerStart = performance.now();
-			await executeCommand(config.buildCommand, componentPath);
-			const timerStop = performance.now();
-			const duration = timerStop - timerStart;
-			logger.info(`The build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
 
-			// Send build time to HDB analytics
-			let pathString = componentPath.toString().slice(0, -1);
-			const projectDirectoryName = pathString.split('/').pop();
-			options.server.recordAnalytics(duration, 'nextjs_build_time_in_milliseconds', projectDirectoryName);
+			const { stdout, stderr, status, error } = spawnSync(command, args, {
+				cwd: componentPath,
+				encoding: 'utf-8',
+			});
 
-			// Release the lock and exit the loop
-			fs.unlinkSync(buildLockPath);
+			if (status === 0) {
+				if (stdout) logger.info(stdout);
+				const duration = performance.now() - timerStart;
+				logger.info(`The Next.js build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
+				options.server.recordAnalytics(
+					duration,
+					'nextjs_build_time_in_milliseconds',
+					componentPath.toString().slice(0, -1).split('/').pop()
+				);
+			} else {
+				if (stderr) logger.error(stderr);
+				if (error) logger.error(error);
+			}
+
+			// 3b.4. Release lock and exit
+			unlinkSync(buildLockPath);
 			break;
 		}
 	}
 
 	// 4. If buildOnly is enabled, exit early
 	if (config.buildOnly) {
-		logger.info('HarperDB Next.js Extension Build Only mode is enabled. Exiting.');
-		return true;
+		logger.info('@harperdb/nextjs extension build only mode is enabled, exiting');
+		process.exit(0);
 	}
 
 	// 5. Start the Next.js server
@@ -347,7 +294,7 @@ async function main(options, componentPath) {
 	const requestHandler = app.getRequestHandler();
 
 	const servers = options.server.http(
-		(request) => requestHandler(request._nodeRequest, request._nodeResponse, url.parse(nodeRequest.url, true)),
+		(request) => requestHandler(request._nodeRequest, request._nodeResponse, urlParse(request._nodeRequest.url, true)),
 		{ port: config.port, securePort: config.securePort }
 	);
 

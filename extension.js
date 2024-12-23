@@ -9,6 +9,8 @@ import { tmpdir } from 'node:os';
 
 import shellQuote from 'shell-quote';
 
+class HarperDBNextJSExtensionError extends Error {}
+
 /**
  * @typedef {Object} ExtensionOptions - The configuration options for the extension. These are all configurable via `config.yaml`.
  * @property {string=} buildCommand - A custom build command. Default to `next build`.
@@ -77,8 +79,6 @@ function resolveConfig(options) {
 	return config;
 }
 
-class HarperDBNextJSExtensionError extends Error {}
-
 /**
  * This function verifies if the input is a Next.js app through a couple of
  * verification methods. See the implementation for details.
@@ -87,6 +87,8 @@ class HarperDBNextJSExtensionError extends Error {}
  * @returns {string} The path to the Next.js main file
  */
 function assertNextJSApp(componentPath) {
+	logger.debug(`Verifying ${componentPath} is a Next.js application`);
+
 	try {
 		if (!existsSync(componentPath)) {
 			throw new HarperDBNextJSExtensionError(`The folder ${componentPath} does not exist`);
@@ -144,14 +146,22 @@ function assertNextJSApp(componentPath) {
  * @param {ExtensionOptions} options
  * @returns
  */
-export function startOnMainThread() {
+export function startOnMainThread(options = {}) {
+	const config = resolveConfig(options);
+
 	return {
-		setupDirectory(_, componentPath) {
+		async setupDirectory(_, componentPath) {
 			assertNextJSApp(componentPath);
 
 			// Some Next.js apps will include cwd relative operations throughout the application (generally in places like `next.config.js`).
 			// So set the cwd to the component path by default.
 			process.chdir(componentPath);
+
+			if (config.buildOnly) {
+				await build(config, componentPath);
+				logger.info('@harperdb/nextjs extension build only mode is enabled, exiting');
+				process.exit(0);
+			}
 
 			return true;
 		},
@@ -170,119 +180,129 @@ export function startOnMainThread() {
  * @returns
  */
 export function start(options = {}) {
+	const config = resolveConfig(options);
 	return {
-		handleDirectory(_, componentPath) {
-			return main(options, componentPath);
+		async handleDirectory(_, componentPath) {
+			// Assert the component path is a Next.js app. This will throw if it is not.
+			assertNextJSApp(componentPath);
+
+			// Setup (build) the component.
+
+			// Prebuilt mode requires validating the `.next` directory exists
+			if (config.prebuilt && !fs.existsSync(path.join(componentPath, '.next'))) {
+				throw new HarperDBNextJSExtensionError('Prebuilt mode is enabled, but the .next folder does not exist');
+			}
+
+			// In non prebuilt or dev modes, build the Next.js app.
+			// This only needs to happen once, on a single thread.
+			// All threads need to wait for this to complete.
+			if (!config.prebuilt && !config.dev) {
+				await build(config, componentPath);
+			}
+
+			// Start the Next.js server
+			await serve(config, componentPath);
+
+			return true;
 		},
 	};
 }
 
-async function main(options, componentPath) {
-	// 1. Resolve the extension configuration from the parsed options
-	const config = resolveConfig(options);
+/**
+ * Build the Next.js application located at `componentPath`.
+ * Uses a lock file to ensure only one thread builds the application.
+ *
+ * @param {Required<ExtensionOptions>} config
+ * @param {string} componentPath
+ */
+async function build(config, componentPath) {
+	// Theoretically, all threads should have roughly the same start time
+	const startTime = Date.now();
+	const buildLockPath = join(tmpdir(), '.harperdb-nextjs-build.lock');
 
-	logger.info(`@harperdb/nextjs extension is setting up ${componentPath}`);
-
-	// 2. Assert the component path is a Next.js app. This will throw if it is not.
-	assertNextJSApp(componentPath);
-
-	// 3. Setup (build) the component.
-
-	// 3a. Prebuilt mode requires validating the `.next` directory exists
-	if (config.prebuilt && !fs.existsSync(path.join(componentPath, '.next'))) {
-		throw new HarperDBNextJSExtensionError('Prebuilt mode is enabled, but the .next folder does not exist');
-	}
-
-	// 3b. In non prebuilt or dev modes, build the Next.js app.
-	// This only needs to happen once, on a single thread.
-	// All threads need to wait for this to complete.
-	if (!config.prebuilt && !config.dev) {
-		// Theoretically, all threads should have roughly the same start time
-		const startTime = Date.now();
-		const buildLockPath = join(tmpdir(), '.harperdb-nextjs-build.lock');
-
-		while (true) {
-			try {
-				// 3b.1. Open lock
-				const buildLockFD = openSync(buildLockPath, 'wx');
-				writeSync(buildLockFD, process.pid.toString());
-			} catch (error) {
-				if (error.code === 'EEXIST') {
-					try {
-						// 3b.1a. Check if the lock is stale
-						if (statSync(buildLockPath).mtimeMs < startTime - 100) {
-							// The lock was created before (with a 100ms tolerance) any of the threads started building.
-							// Safe to consider it stale and remove it.
-							unlinkSync(buildLockPath);
-						}
-					} catch (error) {
-						if (error.code === 'ENOENT') {
-							// The lock was removed by another thread.
-							continue;
-						}
-
-						throw error;
+	while (true) {
+		try {
+			// Open lock
+			const buildLockFD = openSync(buildLockPath, 'wx');
+			writeSync(buildLockFD, process.pid.toString());
+		} catch (error) {
+			if (error.code === 'EEXIST') {
+				try {
+					// Check if the lock is stale
+					if (statSync(buildLockPath).mtimeMs < startTime - 100) {
+						// The lock was created before (with a 100ms tolerance) any of the threads started building.
+						// Safe to consider it stale and remove it.
+						unlinkSync(buildLockPath);
+					}
+				} catch (error) {
+					if (error.code === 'ENOENT') {
+						// The lock was removed by another thread.
+						continue;
 					}
 
-					// Wait for a second and try again
-					await setTimeout(1000);
-					continue;
-				}
-
-				throw error;
-			}
-
-			try {
-				// 3b.2. Check if the .next/BUILD_ID file is fresh
-				if (statSync(join(componentPath, '.next', 'BUILD_ID')).mtimeMs > startTime) {
-					unlinkSync(buildLockPath);
-					break;
-				}
-			} catch (error) {
-				// If the build id file does not exist, continue to building
-				if (error.code !== 'ENOENT') {
-					// All other errors should be thrown
 					throw error;
 				}
+
+				// Wait for a second and try again
+				await setTimeout(1000);
+				continue;
 			}
 
-			// 3b.3. Build
-			const [command, ...args] = shellQuote.parse(config.buildCommand);
-
-			const timerStart = performance.now();
-
-			const { stdout, stderr, status, error } = spawnSync(command, args, {
-				cwd: componentPath,
-				encoding: 'utf-8',
-			});
-
-			if (status === 0) {
-				if (stdout) logger.info(stdout);
-				const duration = performance.now() - timerStart;
-				logger.info(`The Next.js build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
-				options.server.recordAnalytics(
-					duration,
-					'nextjs_build_time_in_milliseconds',
-					componentPath.toString().slice(0, -1).split('/').pop()
-				);
-			} else {
-				if (stderr) logger.error(stderr);
-				if (error) logger.error(error);
-			}
-
-			// 3b.4. Release lock and exit
-			unlinkSync(buildLockPath);
-			break;
+			throw error;
 		}
-	}
 
-	// 4. If buildOnly is enabled, exit early
-	if (config.buildOnly) {
-		logger.info('@harperdb/nextjs extension build only mode is enabled, exiting');
-		process.exit(0);
-	}
+		try {
+			// Check if the .next/BUILD_ID file is fresh
+			if (statSync(join(componentPath, '.next', 'BUILD_ID')).mtimeMs > startTime) {
+				unlinkSync(buildLockPath);
+				break;
+			}
+		} catch (error) {
+			// If the build id file does not exist, continue to building
+			if (error.code !== 'ENOENT') {
+				// All other errors should be thrown
+				throw error;
+			}
+		}
 
-	// 5. Start the Next.js server
+		// Build
+		const [command, ...args] = shellQuote.parse(config.buildCommand);
+
+		const timerStart = performance.now();
+
+		const { stdout, stderr, status, error } = spawnSync(command, args, {
+			cwd: componentPath,
+			encoding: 'utf-8',
+		});
+
+		if (status === 0) {
+			if (stdout) logger.info(stdout);
+			const duration = performance.now() - timerStart;
+			logger.info(`The Next.js build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
+			server.recordAnalytics(
+				duration,
+				'nextjs_build_time_in_milliseconds',
+				componentPath.toString().slice(0, -1).split('/').pop()
+			);
+		} else {
+			if (stderr) logger.error(stderr);
+			if (error) logger.error(error);
+		}
+
+		// Release lock and exit
+		unlinkSync(buildLockPath);
+		break;
+	}
+}
+
+/**
+ * Serve the Next.js application located at `componentPath`.
+ * The app must be built before calling this function.
+ *
+ * @param {Required<ExtensionOptions>} config
+ * @param {string} componentPath
+ */
+async function serve(config, componentPath) {
 	const componentRequire = createRequire(componentPath);
 
 	const next = (await import(componentRequire.resolve('next'))).default;
@@ -293,7 +313,7 @@ async function main(options, componentPath) {
 
 	const requestHandler = app.getRequestHandler();
 
-	const servers = options.server.http(
+	const servers = server.http(
 		(request) => requestHandler(request._nodeRequest, request._nodeResponse, urlParse(request._nodeRequest.url, true)),
 		{ port: config.port, securePort: config.securePort }
 	);
@@ -304,6 +324,4 @@ async function main(options, componentPath) {
 			return upgradeHandler(req, socket, head);
 		});
 	}
-
-	return true;
 }

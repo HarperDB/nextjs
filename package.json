@@ -1,6 +1,6 @@
 {
 	"name": "@harperdb/nextjs",
-	"version": "0.0.16",
+	"version": "0.0.17-0",
 	"type": "module",
 	"description": "A HarperDB Component for running Next.js apps.",
 	"keywords": [

@@ -122,7 +122,7 @@ Specify a port for the Next.js server. Defaults to the HarperDB default port (ge
 
 When enabled, the extension will look for a `.next` directory in the root of the component and skip executing the `buildCommand`. Defaults to `false`.
 
-### `port: number`
+### `securePort: number`
 
 Specify a secure port for the Next.js server. Defaults to the HarperDB default secure port.
 

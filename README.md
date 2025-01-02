@@ -84,6 +84,18 @@ export default async function Dog({ params }) {
 }
 ```
 
+HarperDB relies on native dependencies and must be configured as an external package. In Next.js v14, update the next.config.js `webpack` option with:
+
+```js
+	webpack: (config) => {
+		config.externals.push({
+			harperdb: 'commonjs harperdb',
+		});
+
+		return config;
+	},
+```
+
 ## Options
 
 > All configuration options are optional
@@ -102,23 +114,17 @@ Build the Next.js application and then exit (including shutting down HarperDB). 
 
 Enables Next.js dev mode. Defaults to `false`.
 
-### `installCommand: string`
-
-Specify an install command. Defaults to `npm install`.
-
-> Note: the extension will skip installing dependencies if it detects a `node_modules` folder in the application component.
-
 ### `port: number`
 
-Specify a port for the Next.js server. Defaults to `9926`.
+Specify a port for the Next.js server. Defaults to the HarperDB default port (generally `9926`).
 
 ### `prebuilt: boolean`
 
 When enabled, the extension will look for a `.next` directory in the root of the component and skip executing the `buildCommand`. Defaults to `false`.
 
-### `subPath: string`
+### `port: number`
 
-Specify a sub path to route requests from. For example, with `subPath: 'harperdb'`, any requests within the Next.js app to that path, such as `/harperdb/image.png`, will be rerouted to `/image.png`. Defaults to `''`.
+Specify a secure port for the Next.js server. Defaults to the HarperDB default secure port.
 
 ## CLI
 

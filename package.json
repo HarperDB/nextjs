@@ -1,6 +1,6 @@
 {
 	"name": "@harperdb/nextjs",
-	"version": "0.0.16",
+	"version": "1.0.0-1",
 	"type": "module",
 	"description": "A HarperDB Component for running Next.js apps.",
 	"keywords": [
@@ -34,13 +34,17 @@
 	"scripts": {
 		"format": "prettier .",
 		"format:check": "npm run format -- --check",
-		"format:fix": "npm run format -- --write"
+		"format:fix": "npm run format -- --write",
+		"lint": "eslint extension.js cli.js"
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"
 	},
 	"devDependencies": {
+		"@eslint/js": "^9.17.0",
 		"@harperdb/code-guidelines": "^0.0.2",
+		"eslint": "^9.17.0",
+		"globals": "^15.14.0",
 		"prettier": "^3.4.2"
 	},
 	"prettier": "@harperdb/code-guidelines/prettier"

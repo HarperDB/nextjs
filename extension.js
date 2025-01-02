@@ -189,7 +189,7 @@ export function start(options = {}) {
 			// Setup (build) the component.
 
 			// Prebuilt mode requires validating the `.next` directory exists
-			if (config.prebuilt && !fs.existsSync(path.join(componentPath, '.next'))) {
+			if (config.prebuilt && !existsSync(path.join(componentPath, '.next'))) {
 				throw new HarperDBNextJSExtensionError('Prebuilt mode is enabled, but the .next folder does not exist');
 			}
 

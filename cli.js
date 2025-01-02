@@ -41,6 +41,7 @@ switch (command) {
 		break;
 	default:
 		console.log('Unknown command:', command);
+	// eslint-disable-next-line no-fallthrough
 	case 'help':
 		console.log(HELP);
 		break;

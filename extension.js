@@ -1,3 +1,6 @@
+/* eslint-env node */
+/* global logger */
+
 import { existsSync, statSync, readFileSync, openSync, writeSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as urlParse } from 'node:url';
@@ -158,7 +161,7 @@ export function startOnMainThread(options = {}) {
 			process.chdir(componentPath);
 
 			if (config.buildOnly) {
-				await build(config, componentPath);
+				await build(config, componentPath, options.server);
 				logger.info('@harperdb/nextjs extension build only mode is enabled, exiting');
 				process.exit(0);
 			}
@@ -189,7 +192,7 @@ export function start(options = {}) {
 			// Setup (build) the component.
 
 			// Prebuilt mode requires validating the `.next` directory exists
-			if (config.prebuilt && !existsSync(path.join(componentPath, '.next'))) {
+			if (config.prebuilt && !existsSync(join(componentPath, '.next'))) {
 				throw new HarperDBNextJSExtensionError('Prebuilt mode is enabled, but the .next folder does not exist');
 			}
 
@@ -197,11 +200,11 @@ export function start(options = {}) {
 			// This only needs to happen once, on a single thread.
 			// All threads need to wait for this to complete.
 			if (!config.prebuilt && !config.dev) {
-				await build(config, componentPath);
+				await build(config, componentPath, options.server);
 			}
 
 			// Start the Next.js server
-			await serve(config, componentPath);
+			await serve(config, componentPath, options.server);
 
 			return true;
 		},
@@ -214,8 +217,9 @@ export function start(options = {}) {
  *
  * @param {Required<ExtensionOptions>} config
  * @param {string} componentPath
+ * @param {unknown} server
  */
-async function build(config, componentPath) {
+async function build(config, componentPath, server) {
 	// Theoretically, all threads should have roughly the same start time
 	const startTime = Date.now();
 	const buildLockPath = join(tmpdir(), '.harperdb-nextjs-build.lock');
@@ -302,7 +306,7 @@ async function build(config, componentPath) {
  * @param {Required<ExtensionOptions>} config
  * @param {string} componentPath
  */
-async function serve(config, componentPath) {
+async function serve(config, componentPath, server) {
 	const componentRequire = createRequire(componentPath);
 
 	const next = (await import(componentRequire.resolve('next'))).default;

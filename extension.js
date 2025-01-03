@@ -318,11 +318,16 @@ async function serve(config, componentPath, server) {
 	const requestHandler = app.getRequestHandler();
 
 	const servers = server.http(
-		(request) => requestHandler(request._nodeRequest, request._nodeResponse, urlParse(request._nodeRequest.url, true)),
+		(request, next) => {
+			return request._nodeResponse === undefined
+				? next(request)
+				: requestHandler(request._nodeRequest, request._nodeResponse, urlParse(request._nodeRequest.url, true));
+		},
 		{ port: config.port, securePort: config.securePort }
 	);
 
-	if (config.dev) {
+	// Next.js v9 doesn't have an upgrade handler
+	if (config.dev && app.getUpgradeHandler) {
 		const upgradeHandler = app.getUpgradeHandler();
 		servers[0].on('upgrade', (req, socket, head) => {
 			return upgradeHandler(req, socket, head);

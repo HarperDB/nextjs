@@ -35,7 +35,7 @@
 		"format": "prettier .",
 		"format:check": "npm run format -- --check",
 		"format:fix": "npm run format -- --write",
-		"lint": "eslint extension.js cli.js"
+		"lint": "eslint ."
 	},
 	"dependencies": {
 		"shell-quote": "^1.8.1"

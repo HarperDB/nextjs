@@ -12,7 +12,6 @@ async function executeHarperDB(mode) {
 		env: {
 			...process.env,
 			HARPERDB_NEXTJS_MODE: mode,
-			THREADS_DEBUG: mode === 'dev' ? 'true' : 'false',
 		},
 	});
 	const [exitCode] = await events.once(p, 'exit');

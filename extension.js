@@ -330,7 +330,9 @@ async function serve(config, componentPath, server) {
 	if (config.dev && app.getUpgradeHandler) {
 		const upgradeHandler = app.getUpgradeHandler();
 		servers[0].on('upgrade', (req, socket, head) => {
-			return upgradeHandler(req, socket, head);
+			if (req.url !== '/_next/webpack-hmr') {
+				return upgradeHandler(req, socket, head);
+			}
 		});
 	}
 }

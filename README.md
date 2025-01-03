@@ -136,6 +136,9 @@ Available commands include:
 
 Launches the application in Next.js development mode, and enables HMR for instantaneous updates when modifying application code.
 
+> [!NOTE]
+> Dev mode for Next.js v13+ relies on WebSockets. If you encounter an `Invalid WebSocket frame:` error, disable any other WebSocket services on the Next.js port. This commonly can be the HarperDB MQTT WebSocket service, which can be configured under the `mqtt` option within `harperdb-config.yaml`.
+
 ### `build`
 
 Builds the application and then exits the process.

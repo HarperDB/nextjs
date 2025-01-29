@@ -317,7 +317,7 @@ async function serve(config, componentPath, server) {
 
 	const requestHandler = app.getRequestHandler();
 
-	const servers = server.http(
+	server.http(
 		(request, next) => {
 			return request._nodeResponse === undefined
 				? next(request)
@@ -329,10 +329,20 @@ async function serve(config, componentPath, server) {
 	// Next.js v9 doesn't have an upgrade handler
 	if (config.dev && app.getUpgradeHandler) {
 		const upgradeHandler = app.getUpgradeHandler();
-		servers[0].on('upgrade', (req, socket, head) => {
-			if (req.url !== '/_next/webpack-hmr') {
-				return upgradeHandler(req, socket, head);
-			}
-		});
+		server.upgrade(
+			(request, socket, head, next) => {
+				if (request.url === '/_next/webpack-hmr') {
+					// Next.js v13 - v15 upgradeHandler implementations return promises
+					return upgradeHandler(request, socket, head).then(() => {
+						request.__harperdb_request_upgraded = true;
+
+						next(request, socket, head);
+					});
+				}
+
+				return next(request, socket, head);
+			},
+			{ runFirst: true, port: config.port, securePort: config.securePort }
+		);
 	}
 }

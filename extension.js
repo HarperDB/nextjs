@@ -4,13 +4,11 @@
 import { existsSync, statSync, readFileSync, openSync, writeSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as urlParse } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { performance } from 'node:perf_hooks';
 import { tmpdir } from 'node:os';
-
-import shellQuote from 'shell-quote';
 
 class HarperDBNextJSExtensionError extends Error {}
 
@@ -270,27 +268,28 @@ async function build(config, componentPath, server) {
 		}
 
 		// Build
-		const [command, ...args] = shellQuote.parse(config.buildCommand);
+		try {
+			const timerStart = performance.now();
 
-		const timerStart = performance.now();
+			const stdout = execSync(config.buildCommand, {
+				cwd: componentPath,
+				encoding: 'utf-8',
+			});
 
-		const { stdout, stderr, status, error } = spawnSync(command, args, {
-			cwd: componentPath,
-			encoding: 'utf-8',
-		});
-
-		if (status === 0) {
-			if (stdout) logger.info(stdout);
 			const duration = performance.now() - timerStart;
+
+			if (stdout) {
+				logger.info(stdout);
+			}
+
 			logger.info(`The Next.js build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
 			server.recordAnalytics(
 				duration,
 				'nextjs_build_time_in_milliseconds',
 				componentPath.toString().slice(0, -1).split('/').pop()
 			);
-		} else {
-			if (stderr) logger.error(stderr);
-			if (error) logger.error(error);
+		} catch (error) {
+			logger.error(error);
 		}
 
 		// Release lock and exit

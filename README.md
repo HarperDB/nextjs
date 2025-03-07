@@ -126,6 +126,10 @@ When enabled, the extension will look for a `.next` directory in the root of the
 
 Specify a secure port for the Next.js server. Defaults to the HarperDB default secure port.
 
+### `setCwd: boolean`
+
+Harper will set the current working directory to the root of the Next.js app. Necessary for some Next.js and React libraries. Can cause other issues with Harper Components. Use with caution. Defaults to `false`.
+
 ## CLI
 
 This package includes a CLI (`harperdb-nextjs`) that is meant to replace certain functions of the Next.js CLI. It will launch HarperDB and set sensible configuration values.

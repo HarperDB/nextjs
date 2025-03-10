@@ -73,6 +73,7 @@ function resolveConfig(options) {
 		port: options.port,
 		prebuilt: options.prebuilt ?? false,
 		securePort: options.securePort,
+		setCwd: options.setCwd ?? false,
 	};
 
 	logger.debug('@harperdb/nextjs extension configuration:\n' + JSON.stringify(config, undefined, 2));
@@ -154,9 +155,11 @@ export function startOnMainThread(options = {}) {
 		async setupDirectory(_, componentPath) {
 			assertNextJSApp(componentPath);
 
-			// Some Next.js apps will include cwd relative operations throughout the application (generally in places like `next.config.js`).
-			// So set the cwd to the component path by default.
-			process.chdir(componentPath);
+			if (config.setCwd) {
+				// Some Next.js apps will include cwd relative operations throughout the application (generally in places like `next.config.js`).
+				// So set the cwd to the component path by default.
+				process.chdir(componentPath);
+			}
 
 			if (config.buildOnly) {
 				await build(config, componentPath, options.server);

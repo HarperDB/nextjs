@@ -9,7 +9,6 @@ import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { performance } from 'node:perf_hooks';
 import { tmpdir } from 'node:os';
-import { Writable } from 'node:stream';
 import { once } from 'node:events';
 
 class HarperDBNextJSExtensionError extends Error {}
@@ -287,23 +286,8 @@ async function build(config, componentPath, server) {
 				stdio: ['ignore', 'pipe', 'pipe'],
 			});
 
-			buildProcess.stdout.pipe(
-				new Writable({
-					write(chunk, encoding, callback) {
-						stdout.push(chunk);
-						callback();
-					},
-				})
-			);
-
-			buildProcess.stderr.pipe(
-				new Writable({
-					write(chunk, encoding, callback) {
-						stderr.push(chunk);
-						callback();
-					},
-				})
-			);
+			buildProcess.stdout.on('data', c => stdout.push(c));
+			buildProcess.stderr.on('data', c => stderr.push(c));
 
 			const [code, signal] = await once(buildProcess, 'exit');
 

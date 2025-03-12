@@ -4,13 +4,12 @@
 import { existsSync, statSync, readFileSync, openSync, writeSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as urlParse } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { performance } from 'node:perf_hooks';
 import { tmpdir } from 'node:os';
-
-import shellQuote from 'shell-quote';
+import { once } from 'node:events';
 
 class HarperDBNextJSExtensionError extends Error {}
 
@@ -273,27 +272,47 @@ async function build(config, componentPath, server) {
 		}
 
 		// Build
-		const [command, ...args] = shellQuote.parse(config.buildCommand);
+		try {
+			logger.info(`Building Next.js application at ${componentPath}`);
 
-		const timerStart = performance.now();
+			const timerStart = performance.now();
 
-		const { stdout, stderr, status, error } = spawnSync(command, args, {
-			cwd: componentPath,
-			encoding: 'utf-8',
-		});
+			const stdout = [];
+			const stderr = [];
 
-		if (status === 0) {
-			if (stdout) logger.info(stdout);
+			const buildProcess = spawn(config.buildCommand, [], {
+				shell: true,
+				cwd: componentPath,
+				stdio: ['ignore', 'pipe', 'pipe'],
+			});
+
+			buildProcess.stdout.on('data', (c) => stdout.push(c));
+			buildProcess.stderr.on('data', (c) => stderr.push(c));
+
+			const [code, signal] = await once(buildProcess, 'close');
+
 			const duration = performance.now() - timerStart;
+
+			if (code !== 0) {
+				logger.warn(`Build command \`${config.buildCommand}\` exited with code ${code} and signal ${signal}`);
+			}
+
+			if (stdout.length > 0) {
+				logger.info(Buffer.concat(stdout).toString());
+			}
+
+			if (stderr.length > 0) {
+				logger.error(Buffer.concat(stderr).toString());
+			}
+
 			logger.info(`The Next.js build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);
 			server.recordAnalytics(
 				duration,
 				'nextjs_build_time_in_milliseconds',
 				componentPath.toString().slice(0, -1).split('/').pop()
 			);
-		} else {
-			if (stderr) logger.error(stderr);
-			if (error) logger.error(error);
+		} catch (error) {
+			logger.error(error);
 		}
 
 		// Release lock and exit

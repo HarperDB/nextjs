@@ -37,9 +37,6 @@
 		"format:fix": "npm run format -- --write",
 		"lint": "eslint ."
 	},
-	"dependencies": {
-		"shell-quote": "^1.8.1"
-	},
 	"devDependencies": {
 		"@eslint/js": "^9.17.0",
 		"@harperdb/code-guidelines": "^0.0.2",

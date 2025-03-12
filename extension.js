@@ -286,14 +286,16 @@ async function build(config, componentPath, server) {
 				stdio: ['ignore', 'pipe', 'pipe'],
 			});
 
-			buildProcess.stdout.on('data', c => stdout.push(c));
-			buildProcess.stderr.on('data', c => stderr.push(c));
+			buildProcess.stdout.on('data', (c) => stdout.push(c));
+			buildProcess.stderr.on('data', (c) => stderr.push(c));
 
 			const [code, signal] = await once(buildProcess, 'close');
 
 			const duration = performance.now() - timerStart;
 
-			logger.info(`Build command \`${config.buildCommand}\` exited with code ${code} and signal ${signal}`);
+			if (code !== 0) {
+				logger.warn(`Build command \`${config.buildCommand}\` exited with code ${code} and signal ${signal}`);
+			}
 
 			if (stdout.length > 0) {
 				logger.info(Buffer.concat(stdout).toString());

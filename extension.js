@@ -4,11 +4,13 @@
 import { existsSync, statSync, readFileSync, openSync, writeSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as urlParse } from 'node:url';
-import { execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { performance } from 'node:perf_hooks';
 import { tmpdir } from 'node:os';
+import { Writable } from 'node:stream';
+import { once } from 'node:events';
 
 class HarperDBNextJSExtensionError extends Error {}
 
@@ -272,17 +274,49 @@ async function build(config, componentPath, server) {
 
 		// Build
 		try {
+			logger.info(`Building Next.js application at ${componentPath}`);
+
 			const timerStart = performance.now();
 
-			const stdout = execSync(config.buildCommand, {
+			const stdout = [];
+			const stderr = [];
+
+			const buildProcess = spawn(config.buildCommand, [], {
+				shell: true,
 				cwd: componentPath,
-				encoding: 'utf-8',
+				stdio: ['ignore', 'pipe', 'pipe'],
 			});
+
+			buildProcess.stdout.pipe(
+				new Writable({
+					write(chunk, encoding, callback) {
+						stdout.push(chunk);
+						callback();
+					},
+				})
+			);
+
+			buildProcess.stderr.pipe(
+				new Writable({
+					write(chunk, encoding, callback) {
+						stderr.push(chunk);
+						callback();
+					},
+				})
+			);
+
+			const [code, signal] = await once(buildProcess, 'exit');
 
 			const duration = performance.now() - timerStart;
 
-			if (stdout) {
-				logger.info(stdout);
+			logger.info(`Build command \`${config.buildCommand}\` exited with code ${code} and signal ${signal}`);
+
+			if (stdout.length > 0) {
+				logger.info(Buffer.concat(stdout).toString());
+			}
+
+			if (stderr.length > 0) {
+				logger.error(Buffer.concat(stderr).toString());
 			}
 
 			logger.info(`The Next.js build took ${((duration % 60000) / 1000).toFixed(2)} seconds`);

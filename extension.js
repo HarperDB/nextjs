@@ -289,7 +289,7 @@ async function build(config, componentPath, server) {
 			buildProcess.stdout.on('data', c => stdout.push(c));
 			buildProcess.stderr.on('data', c => stderr.push(c));
 
-			const [code, signal] = await once(buildProcess, 'exit');
+			const [code, signal] = await once(buildProcess, 'close');
 
 			const duration = performance.now() - timerStart;
 

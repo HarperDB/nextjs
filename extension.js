@@ -356,9 +356,9 @@ async function serve(config, componentPath, server) {
 				if (request.url === '/_next/webpack-hmr') {
 					// Next.js v13 - v15 upgradeHandler implementations return promises
 					return upgradeHandler(request, socket, head).then(() => {
-						request.__harperdb_request_upgraded = true;
+						request.__harperdbRequestUpgraded = true;
 
-						next(request, socket, head);
+						return next(request, socket, head);
 					});
 				}
 

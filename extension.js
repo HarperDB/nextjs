@@ -10,6 +10,7 @@ import { createRequire } from 'node:module';
 import { performance } from 'node:perf_hooks';
 import { tmpdir } from 'node:os';
 import { once } from 'node:events';
+import { pathToFileURL } from 'node:url';
 
 class HarperDBNextJSExtensionError extends Error {}
 
@@ -331,7 +332,7 @@ async function build(config, componentPath, server) {
 async function serve(config, componentPath, server) {
 	const componentRequire = createRequire(componentPath);
 
-	const next = (await import(componentRequire.resolve('next'))).default;
+	const next = (await import(pathToFileURL(componentRequire.resolve('next')))).default;
 
 	const app = next({ dir: componentPath, dev: config.dev });
 

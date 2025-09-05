@@ -330,7 +330,7 @@ async function build(config, componentPath, server) {
  * @param {string} componentPath
  */
 async function serve(config, componentPath, server) {
-	const componentRequire = createRequire(componentPath);
+	const componentRequire = createRequire(join(componentPath, 'package.json'));
 
 	const next = (await import(pathToFileURL(componentRequire.resolve('next')))).default;
 
